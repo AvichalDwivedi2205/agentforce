@@ -275,12 +275,19 @@ Cluster 2: ${JSON.stringify(cluster2, null, 2)}
 `;
 
 export const PROMPT_DECOMPOSE = (q: string) => `
-Decompose the user question into 4-8 non-overlapping sub-questions.
-For each, label it as one of: 
-- factual (requires up-to-date sources or numbers/dates),
-- knowledge (general synthesis),
-- reasoning (multi-step inference or ambiguous).
-Return JSON array with objects: { "question": "...", "type": "factual|knowledge|reasoning", "rationale": "..." }.
+Break down this research topic into exactly 3 distinct, focused themes for comprehensive analysis.
+
+Each theme should cover a different major aspect of the topic. Make them specific and actionable for research.
+
+Return exactly 3 themes as a JSON array:
+[
+  {"question": "Theme 1: [Specific aspect]", "type": "knowledge", "rationale": "Why this theme matters"},
+  {"question": "Theme 2: [Different aspect]", "type": "knowledge", "rationale": "Why this theme matters"}, 
+  {"question": "Theme 3: [Third major aspect]", "type": "knowledge", "rationale": "Why this theme matters"}
+]
+
+Focus on themes that will provide comprehensive coverage without overlap.
+
 User question: ${q}
 `;
 

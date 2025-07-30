@@ -1122,11 +1122,11 @@ async function extractDetailedContent(themes: string[], input: ResearchInput): P
   
   for (const theme of themes) {
     try {
-      // Get 5-6 sources with full content for this theme
+      // Get 2-3 sources with full content for this theme (OPTIMIZED)
       const searchResult = await tavilySearchCached({
         query: `${theme} ${input.query}`.substring(0, 350), // Keep under Tavily limit
-        maxResults: 6,
-        searchDepth: 'advanced',
+        maxResults: 12, // Reduced from 6 to 3
+        searchDepth: 'advanced', // Changed from advanced to basic for efficiency
         includeRawContent: true
       });
       
@@ -1135,14 +1135,14 @@ async function extractDetailedContent(themes: string[], input: ResearchInput): P
       // Filter sources with substantial content
       const richSources = searchResult.items
         .filter(item => item.raw_content && item.raw_content.length > 1000)
-        .slice(0, 4); // Top 4 sources with good content
+        .slice(0, 9); // Top 2 sources with good content (reduced from 4)
       
       if (richSources.length === 0) {
         log('extract> no rich content found for theme, using snippets');
         contentExtracts.push({
           theme,
           content: searchResult.items.map(item => `${item.title}: ${item.snippet}`).join('\n\n'),
-          sources: searchResult.items.map(item => item.url).slice(0, 4)
+          sources: searchResult.items.map(item => item.url).slice(0, 2) // Reduced from 4 to 2
         });
         continue;
       }
@@ -1153,33 +1153,24 @@ async function extractDetailedContent(themes: string[], input: ResearchInput): P
       
       for (const source of richSources) {
         try {
+          // Use free model for extraction to minimize costs
           const extractResult = await openrouterCall({
-            model: DEFAULT_OR_MODEL,
+            model: GEMINI_MODEL, // Use free model for extraction
             messages: [
               {
                 role: 'system',
-                content: `You are a research analyst extracting key insights about "${theme}" from source content. 
-
-Extract the most important information, data points, examples, and insights related to this theme. Focus on:
-- Specific statistics, numbers, and data
-- Real-world examples and case studies  
-- Expert opinions and analysis
-- Current trends and developments
-- Future projections and implications
-
-Write 2-3 detailed paragraphs with rich, specific content. Include the most compelling and substantive information from the source.`
+                content: `Extract key insights about "${theme}" from the source. Focus on specific data, examples, and trends. Write 2-3 paragraphs with the most important information.`
               },
               {
                 role: 'user',
                 content: `Theme: ${theme}
+Source: ${source.title}
+Content: ${source.raw_content?.substring(0, 3000) || source.snippet || 'No content available'}
 
-Source Title: ${source.title}
-Source Content: ${source.raw_content?.substring(0, 4000) || source.snippet || 'No content available'}
-
-Extract detailed insights about "${theme}" from this source:`
+Extract key insights:`
               }
             ],
-            temperature: 0.3
+            temperature: 0.2
           });
           
           insights.push(extractResult.text || 'No insights extracted');
@@ -1243,6 +1234,7 @@ async function runParallelFocusedResearch(contentExtracts: Array<{theme: string,
       try {
         state.pplxCalls++;
         log('parallel> researching theme:', extract.theme.substring(0, 40) + '...');
+        log('[perplexity] calling sonar-pro for theme:', extract.theme.substring(0, 50) + '...');
         
         const result = await perplexityAsk({
           prompt: `Conduct comprehensive research analysis on: ${extract.theme}
@@ -1269,6 +1261,9 @@ Make this analysis substantial and detailed with specific data, examples, and in
           mode: 'pro'
         });
         
+        log('[perplexity] received response, length:', (result.text || '').length, 'chars');
+        log('[perplexity] citations received:', (result.citations || []).length);
+        
         return {
           theme: extract.theme,
           analysis: result.text || `Analysis of ${extract.theme}:\n\nDetailed research analysis not available.`,
@@ -1276,6 +1271,8 @@ Make this analysis substantial and detailed with specific data, examples, and in
         };
         
       } catch (error) {
+        log('[perplexity] ERROR - API call failed for theme:', extract.theme.substring(0, 50));
+        log('[perplexity] Error details:', error);
         log('parallel> research failed for theme:', extract.theme, error);
         return {
           theme: extract.theme,
@@ -1310,45 +1307,33 @@ async function synthesizeNarrativeReport(analyses: Array<{theme: string, analysi
     
     // Create comprehensive synthesis prompt
     const synthesisResult = await openrouterCall({
-      model: GEMINI_MODEL, // Use Gemini for better long-form synthesis
+      model: 'google/gemini-2.5-flash-lite', // Use free model for synthesis to minimize costs
       messages: [
         {
           role: 'system',
-          content: `You are a senior research analyst creating a comprehensive research report. Your goal is to synthesize multiple detailed analyses into a cohesive, flowing narrative report.
+          content: `Create a comprehensive research report synthesizing the analyses below.
 
-Create a substantial research document with:
-- A comprehensive executive summary (400-600 words)
-- 15+ key findings with detailed explanations (not just bullet points)
-- 5+ detailed analysis sections (600-800 words each)
-- Rich narrative flow with specific examples, data, and insights
-
-Write in a professional, analytical tone. Use concrete examples, statistics, and case studies. Make each section substantial and informative.
-
-Output Format: Write the report directly in Markdown format. Structure it as:
-
+Structure:
 # Comprehensive Research Report
-
 **Research Query:** [query]
 
 ## Executive Summary
-[400-600 word comprehensive summary]
+[400-500 word summary]
 
 ## Key Research Findings
 ### Finding 1: [Title]
-[Detailed explanation with specifics]
-
-[Continue with 15+ findings]
+[Detailed explanation]
+[Continue with 10+ findings]
 
 ## Detailed Analysis
 ### [Section Title]
-[600-800 words of flowing narrative analysis]
-
-[Continue with 5+ sections]
+[500-700 words analysis]
+[Continue with 3+ sections]
 
 ## Research Limitations
-[List of limitations]
+[List limitations]
 
-Do NOT include source appendices - just focus on the content. Make this a substantial, comprehensive document.`
+Make it substantial with specific examples and data. Use professional tone.`
         },
         {
           role: 'user',
@@ -1448,10 +1433,13 @@ export async function runDeepResearch(input: ResearchInput): Promise<{ report: R
   const startTime = Date.now();
   log('research> starting CONTENT-FIRST research, mode:', input.deepMode ? 'DEEP' : 'NORMAL');
   
-  // Clear cache if requested
+  // Always clear cache for fresh results and prevent cache bloat
+  clearCache();
+  log('research> cache cleared automatically for fresh results');
+  
+  // Additional clear if explicitly requested (legacy support)
   if (input.clearCache) {
-    clearCache();
-    log('research> cache cleared');
+    log('research> explicit cache clear also requested');
   }
   
   const state: ResearchState = {
