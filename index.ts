@@ -25,10 +25,16 @@ async function main() {
   const from = argv.from as string | undefined;
   const to   = argv.to as string | undefined;
   const skipClarify = argv['skip-clarify'] || argv.s;
+  const deepMode = argv.deep || argv.d;
+  const clarifyModel = argv['clarify-model'] as 'gemini' | 'mistral' | undefined;
 
   if (!query) {
-    console.error('Usage: tsx index.ts --q "Your question" [--from 2024-10-01] [--to 2025-07-30] [--skip-clarify]');
+    console.error('Usage: tsx index.ts --q "Your question" [--from 2024-10-01] [--to 2025-07-30] [--skip-clarify] [--deep] [--clarify-model gemini|mistral]');
     process.exit(1);
+  }
+
+  if (deepMode) {
+    console.log('🚀 Deep Research Mode: Using Gemini models and enhanced budgets');
   }
 
   let finalQuery = query;
@@ -41,7 +47,9 @@ async function main() {
       query, 
       from, 
       to, 
-      interactive: true 
+      interactive: true,
+      deepMode,
+      clarifyModel
     });
 
     if (clarifyingQuestions && clarifyingQuestions.length > 0) {
@@ -78,7 +86,9 @@ async function main() {
     query: finalQuery, 
     from, 
     to, 
-    interactive: false 
+    interactive: false,
+    deepMode,
+    clarifyModel
   });
 
   console.log('=== META ===');

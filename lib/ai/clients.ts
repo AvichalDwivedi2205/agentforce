@@ -119,8 +119,9 @@ export async function openrouterCall<T = unknown>(params: {
   messages: Array<{ role:'system'|'user'|'assistant'; content: string }>;
   schema?: any;           // JSON Schema for structured output
   temperature?: number;
+  timeout?: number;       // Custom timeout
 }) {
-  const { model, messages, schema, temperature = 0.2 } = params;
+  const { model, messages, schema, temperature = 0.2, timeout } = params;
   return withSpan(`tool:openrouter.${model}`, async () => {
     const body: any = { model, messages, temperature };
     if (schema) {
@@ -143,7 +144,7 @@ export async function openrouterCall<T = unknown>(params: {
           ...(ENV.OPENROUTER_REFERER ? { 'HTTP-Referer': ENV.OPENROUTER_REFERER } : {}),
           ...(ENV.OPENROUTER_APP_TITLE ? { 'X-Title': ENV.OPENROUTER_APP_TITLE } : {})
         },
-        timeout: 90000
+        timeout: timeout || (model.startsWith('google/') ? 600000 : 90000)
       }
     );
 

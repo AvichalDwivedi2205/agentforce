@@ -43,6 +43,8 @@ export type ResearchInput = {
   from?: string; // ISO
   to?: string;   // ISO
   interactive?: boolean; // Whether to ask clarifying questions
+  deepMode?: boolean; // Enable Gemini models and larger budgets
+  clarifyModel?: 'gemini' | 'mistral'; // Override clarify model
 };
 
 export type ResearchState = {
@@ -109,6 +111,32 @@ Focus on:
 - Scale/magnitude (how big/small?)
 
 User question: ${q}
+`;
+
+export const PROMPT_CLARIFY_GEMINI = (q: string) => `
+You are an expert research strategist. The user wants to research: "${q}"
+
+Generate 5-7 insightful clarifying questions that will significantly improve research quality and depth. Each question should unlock a different dimension of understanding.
+
+For each question, provide:
+- A precise, thought-provoking clarifying question
+- The strategic purpose (why this matters for comprehensive research)
+- 2-4 specific answer options that represent meaningful choices
+
+Return a JSON array with objects: { "question": "...", "purpose": "...", "suggested_answers": ["option1", "option2", "option3", "option4"] }
+
+Focus on strategic dimensions:
+- Temporal scope (historical context, current state, future projections)
+- Geographic/market scope (global vs regional focus, emerging vs established markets)
+- Industry verticals and cross-sector implications
+- Stakeholder ecosystems (startups, investors, regulators, customers)
+- Analytical depth (quantitative metrics, qualitative trends, comparative analysis)
+- Use case specificity (applications, technologies, business models)
+- Scale and impact (market size, disruption potential, adoption patterns)
+
+Make each question unlock substantially different research paths and evidence types.
+
+User research topic: ${q}
 `;
 
 export const PROMPT_DECOMPOSE = (q: string) => `

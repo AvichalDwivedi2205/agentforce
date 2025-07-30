@@ -1,7 +1,7 @@
 import { openrouterCall, perplexityAsk, tavilySearch } from '../../clients.js';
 import {
   ResearchInput, ResearchState, SubQuestion, Evidence, Report, ClarifyingQuestion,
-  PROMPT_DECOMPOSE, PROMPT_GAPFILL, PROMPT_SYNTH, PROMPT_CLARIFY,
+  PROMPT_DECOMPOSE, PROMPT_GAPFILL, PROMPT_SYNTH, PROMPT_CLARIFY, PROMPT_CLARIFY_GEMINI,
   dedupeEvidence, withinWindow
 } from './contracts.js';
 
@@ -9,12 +9,16 @@ import {
 const log = (...args: any[]) => console.log('[research]', ...args);
 
 // HARD CAPS (call-count budgets)
-const PPLX_CAP = 6;     // by the 6th Perplexity run, we must produce
+const PPLX_CAP = 6;     // normal mode
+const PPLX_CAP_DEEP = 10; // deep mode - more perplexity calls
 const PPLX_DEEP_CAP = 3; // max 3 deep-research calls (knowledge + gap-fill)
-const TAVILY_CAP = 16;
+const TAVILY_CAP = 16;   // normal mode
+const TAVILY_CAP_DEEP = 24; // deep mode - more tavily calls
 const OPENROUTER_CAP = 4;
+const RUNTIME_CAP_MS = 12 * 60 * 1000; // 12 minutes max runtime
 
-const DEFAULT_OR_MODEL = '';
+const DEFAULT_OR_MODEL = 'mistralai/mistral-7b-instruct:free';
+const GEMINI_MODEL = 'google/gemini-2.5-flash';
 
 function pickType(q: any): 'factual'|'knowledge'|'reasoning' {
   const t = (q.type || '').toLowerCase();
@@ -32,11 +36,18 @@ function truncateForTavily(query: string): string {
 async function generateClarifyingQuestions(input: ResearchInput, state: ResearchState): Promise<ClarifyingQuestion[]> {
   if (state.openrouterCalls >= OPENROUTER_CAP) return [];
   
+  // Choose model and prompt based on deep mode or explicit override
+  const useGemini = input.clarifyModel === 'gemini' || (input.deepMode && input.clarifyModel !== 'mistral');
+  const model = useGemini ? GEMINI_MODEL : DEFAULT_OR_MODEL;
+  const prompt = useGemini ? PROMPT_CLARIFY_GEMINI(input.query) : PROMPT_CLARIFY(input.query);
+  
+  log('clarify> using model:', model);
+  
   const { text } = await openrouterCall({
-    model: DEFAULT_OR_MODEL,
+    model,
     messages: [
       { role: 'system', content: 'Return only JSON array. No prose.' },
-      { role: 'user', content: PROMPT_CLARIFY(input.query) }
+      { role: 'user', content: prompt }
     ],
     temperature: 0.3
   });
@@ -48,7 +59,7 @@ async function generateClarifyingQuestions(input: ResearchInput, state: Research
   
   if (object && Array.isArray(object)) {
     log('clarify> generated', object.length, 'questions');
-    return object.slice(0, 5).map((q, i) => ({
+    return object.slice(0, 7).map((q, i) => ({
       id: `cq${i+1}`,
       question: String(q.question || '').trim(),
       purpose: String(q.purpose || '').trim(),
@@ -62,8 +73,12 @@ async function generateClarifyingQuestions(input: ResearchInput, state: Research
 async function decompose(input: ResearchInput, state: ResearchState): Promise<SubQuestion[]> {
   if (state.openrouterCalls >= OPENROUTER_CAP) return state.subqs;
   
+  // Use Gemini for decomposition in deep mode
+  const model = input.deepMode ? GEMINI_MODEL : DEFAULT_OR_MODEL;
+  log('decompose> using model:', model);
+  
   const { text: decompText } = await openrouterCall({
-    model: DEFAULT_OR_MODEL,
+    model,
     messages: [
       { role: 'system', content: 'Return only JSON array. No prose.' },
       { role: 'user', content: PROMPT_DECOMPOSE(input.query) }
@@ -92,21 +107,29 @@ async function decompose(input: ResearchInput, state: ResearchState): Promise<Su
 
 async function assignAndGather(input: ResearchInput, subqs: SubQuestion[], state: ResearchState) {
   const evidence: Evidence[] = [];
-  log('gather> starting for', subqs.length, 'subqs');
+  
+  // Dynamic budgets based on deep mode
+  const pplxCap = input.deepMode ? PPLX_CAP_DEEP : PPLX_CAP;
+  const tavilyCap = input.deepMode ? TAVILY_CAP_DEEP : TAVILY_CAP;
+  const maxResults = input.deepMode ? 20 : 8;
+  const searchDepth = input.deepMode ? 'advanced' : 'basic';
+  
+  log('gather> starting for', subqs.length, 'subqs (deep mode:', !!input.deepMode, ')');
+  log('gather> budgets - pplx:', pplxCap, 'tavily:', tavilyCap, 'maxResults:', maxResults);
 
-  // Simple routing: factual -> Tavily; knowledge -> Perplexity(pro); reasoning -> Perplexity(reasoning)
+  // Enhanced routing: factual -> Tavily (advanced in deep mode); knowledge -> Deep-Research; reasoning -> Reasoning
   const tasks = subqs.map(async (sq) => {
     log('gather> processing subq:', sq.id, sq.type, sq.question.substring(0, 100) + '...');
     
-    if (sq.type === 'factual' && state.tavilyCalls < TAVILY_CAP) {
+    if (sq.type === 'factual' && state.tavilyCalls < tavilyCap) {
       state.tavilyCalls++;
-      log('gather> tavily call for', sq.id);
+      log('gather> tavily call for', sq.id, 'depth:', searchDepth);
       try {
         const res = await tavilySearch({
           query: truncateForTavily(sq.question),
-          maxResults: 8,
+          maxResults,
           timeRange: 'year',
-          searchDepth: 'basic'
+          searchDepth
         });
         log('gather> tavily returned', res.items.length, 'items for', sq.id);
         for (const it of res.items) {
@@ -118,7 +141,7 @@ async function assignAndGather(input: ResearchInput, subqs: SubQuestion[], state
         log('gather> tavily error for', sq.id, ':', err?.message || err);
       }
     } else {
-      if (state.pplxCalls >= PPLX_CAP) {
+      if (state.pplxCalls >= pplxCap) {
         log('gather> skipping', sq.id, '- perplexity budget exhausted');
         return;
       }
@@ -141,17 +164,17 @@ async function assignAndGather(input: ResearchInput, subqs: SubQuestion[], state
         log('gather> perplexity returned', a.citations?.length || 0, 'citations for', sq.id);
         
         // Treat model text as a hint; main value is citations
-        const cites = (a.citations || []).slice(0, 6);
-        if (cites.length && state.tavilyCalls < TAVILY_CAP) {
+        const cites = (a.citations || []).slice(0, input.deepMode ? 10 : 6);
+        if (cites.length && state.tavilyCalls < tavilyCap) {
           // fetch Tavily metadata for those URLs (batch not offered; do single calls via query string)
           state.tavilyCalls++;
           log('gather> tavily follow-up for citations from', sq.id);
           try {
             const res = await tavilySearch({
               query: truncateForTavily(sq.question),
-              maxResults: 8,
+              maxResults,
               timeRange: 'year',
-              searchDepth: 'basic'
+              searchDepth
             });
             log('gather> tavily follow-up returned', res.items.length, 'items');
             
@@ -208,12 +231,16 @@ function findContradictions(evd: Evidence[]): Array<{ topic: string; urls: strin
 }
 
 async function gapFill(input: ResearchInput, state: ResearchState, conflictTopic: string) {
-  if (state.pplxCalls >= PPLX_CAP && state.tavilyCalls >= TAVILY_CAP) return [] as Evidence[];
+  // Dynamic budgets based on deep mode
+  const pplxCap = input.deepMode ? PPLX_CAP_DEEP : PPLX_CAP;
+  const tavilyCap = input.deepMode ? TAVILY_CAP_DEEP : TAVILY_CAP;
+  
+  if (state.pplxCalls >= pplxCap && state.tavilyCalls >= tavilyCap) return [] as Evidence[];
 
   // Use Perplexity deep-research for comprehensive gap-filling + Tavily advanced
   const results: Evidence[] = [];
 
-  if (state.pplxCalls < PPLX_CAP) {
+  if (state.pplxCalls < pplxCap) {
     state.pplxCalls++;
     
     // Use deep-research if budget allows, otherwise fallback to reasoning
@@ -237,13 +264,13 @@ async function gapFill(input: ResearchInput, state: ResearchState, conflictTopic
     for (const u of urls.slice(0, 5)) results.push({ url: u, source_tool: 'perplexity' });
   }
 
-  if (state.tavilyCalls < TAVILY_CAP) {
+  if (state.tavilyCalls < tavilyCap) {
     state.tavilyCalls++;
     const t = await tavilySearch({
       query: truncateForTavily(conflictTopic),
       searchDepth: 'advanced',
-      maxResults: 8,
-      timeRange: 'year', // Use 'year' instead of 'y'
+      maxResults: input.deepMode ? 20 : 8,
+      timeRange: 'year',
       includeDomains: state.contradictions[0].urls.map(u => new URL(u).hostname)
     });
     for (const it of t.items) {
@@ -289,6 +316,9 @@ ${report.limitations.map(l => `- ${l}`).join('\n')}
 }
 
 export async function runDeepResearch(input: ResearchInput): Promise<{ report: Report; markdown: string; meta: any; clarifyingQuestions?: ClarifyingQuestion[] }> {
+  const startTime = Date.now();
+  log('research> starting deep research, mode:', input.deepMode ? 'DEEP' : 'NORMAL');
+  
   const state: ResearchState = {
     input,
     clarifyingQuestions: [],
@@ -353,13 +383,38 @@ export async function runDeepResearch(input: ResearchInput): Promise<{ report: R
     log('gapfill> added', extra.length, 'items. evidence now', state.evidence.length);
   }
 
+  // Runtime check before expensive operations
+  if (Date.now() - startTime > RUNTIME_CAP_MS) {
+    log('research> runtime cap exceeded, stopping early');
+    return {
+      report: {
+        query: input.query,
+        executive_summary: 'Research stopped due to time limit exceeded.',
+        key_findings: [],
+        sections: [],
+        limitations: ['Research terminated early due to runtime cap.']
+      },
+      markdown: '# Research Brief\n\n**Query:** ' + input.query + '\n\n## Limitations\n- Research terminated early due to runtime cap.',
+      meta: {
+        pplxCalls: state.pplxCalls,
+        pplxDeepCalls: state.pplxDeepCalls,
+        tavilyCalls: state.tavilyCalls,
+        openrouterCalls: state.openrouterCalls,
+        subqCount: state.subqs.length,
+        evidenceCount: state.evidence.length,
+        runtimeExceeded: true
+      }
+    };
+  }
+
   // Fallback: if still no evidence, try one broad Tavily search on the whole query
-  if (state.evidence.length === 0 && state.tavilyCalls < TAVILY_CAP) {
+  const tavilyCap = input.deepMode ? TAVILY_CAP_DEEP : TAVILY_CAP;
+  if (state.evidence.length === 0 && state.tavilyCalls < tavilyCap) {
     log('fallback> no evidence, running broad Tavily search');
     state.tavilyCalls++;
     const t = await tavilySearch({ 
       query: truncateForTavily(state.refinedQuery || input.query), 
-      maxResults: 10, 
+      maxResults: input.deepMode ? 20 : 10, 
       timeRange: 'year', 
       searchDepth: 'advanced' 
     });
@@ -431,14 +486,22 @@ export async function runDeepResearch(input: ResearchInput): Promise<{ report: R
     required: ['query','executive_summary','key_findings','sections','limitations']
   };
 
-  // Only pass evidence the model can cite
-  const citeable = state.evidence.slice(0, 30); // keep prompt compact
+  // Only pass evidence the model can cite - more in deep mode
+  const maxEvidence = input.deepMode ? 80 : 30;
+  const citeable = state.evidence.slice(0, maxEvidence);
   const evidenceBlock = JSON.stringify(citeable, null, 2);
 
+  // Use Gemini for synthesis in deep mode
+  const synthModel = input.deepMode ? GEMINI_MODEL : DEFAULT_OR_MODEL;
+  log('synthesis> using model:', synthModel, 'with', citeable.length, 'evidence items');
+
   const { object } = await openrouterCall<Report>({
-    model: DEFAULT_OR_MODEL,
+    model: synthModel,
     messages: [
-      { role: 'system', content: 'Return ONLY JSON strictly matching the provided schema.' },
+      { role: 'system', content: input.deepMode ? 
+        'Return ONLY JSON strictly matching the provided schema. Generate comprehensive analysis with minimum 10 key findings and 3+ detailed sections.' :
+        'Return ONLY JSON strictly matching the provided schema.' 
+      },
       { role: 'user', content: `Evidence:\n${evidenceBlock}\n\n${PROMPT_SYNTH(input.query)}` }
     ],
     schema,
