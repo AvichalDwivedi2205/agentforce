@@ -146,29 +146,26 @@ User question: ${q}
 `;
 
 export const PROMPT_CLARIFY_GEMINI = (q: string) => `
-You are an expert research strategist. The user wants to research: "${q}"
+You are a research strategist helping to design the perfect research approach. The user wants to research: "${q}"
 
-Generate 5-7 insightful clarifying questions that will significantly improve research quality and depth. Each question should unlock a different dimension of understanding.
+Your task is to ask 2-3 thoughtful questions that will help create a much better, more focused research report. Think creatively about what would make this research most valuable.
+
+Consider asking about:
+- What specific aspects matter most to them
+- What type of analysis would be most useful
+- What perspective or angle would be most insightful
+- What scope or focus would provide the best value
+
+Feel free to ask whatever you think would genuinely improve the research - don't be limited by templates.
 
 For each question, provide:
-- A precise, thought-provoking clarifying question
-- The strategic purpose (why this matters for comprehensive research)
-- 2-4 specific answer options that represent meaningful choices
+- The question itself (make it conversational and clear)
+- A brief explanation of why this helps
+- 3-4 practical answer options
 
-Return a JSON array with objects: { "question": "...", "purpose": "...", "suggested_answers": ["option1", "option2", "option3", "option4"] }
+Return a JSON array: [{"question": "...", "purpose": "...", "suggested_answers": ["...", "...", "..."]}]
 
-Focus on strategic dimensions:
-- Temporal scope (historical context, current state, future projections)
-- Geographic/market scope (global vs regional focus, emerging vs established markets)
-- Industry verticals and cross-sector implications
-- Stakeholder ecosystems (startups, investors, regulators, customers)
-- Analytical depth (quantitative metrics, qualitative trends, comparative analysis)
-- Use case specificity (applications, technologies, business models)
-- Scale and impact (market size, disruption potential, adoption patterns)
-
-Make each question unlock substantially different research paths and evidence types.
-
-User research topic: ${q}
+Research topic: ${q}
 `;
 
 export const PROMPT_QUERY_EXPAND = (macroTopics: string[]) => `
