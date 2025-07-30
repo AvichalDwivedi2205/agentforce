@@ -1,5 +1,7 @@
 import minimist from 'minimist';
 import { runDeepResearch } from './lib/ai/graphs/research/graph.js';
+import fs from 'fs';
+import path from 'path';
 
 async function main() {
   const argv = minimist(process.argv.slice(2));
@@ -20,6 +22,15 @@ async function main() {
   console.log(JSON.stringify(report, null, 2));
   console.log('\n=== REPORT(Markdown) ===');
   console.log(markdown);
+
+  // --- Save Markdown to disk ---
+  const outDir = path.resolve('generated_files');
+  if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const fileName = `report-${timestamp}.md`;
+  const filePath = path.join(outDir, fileName);
+  fs.writeFileSync(filePath, markdown, 'utf8');
+  console.log(`\nMarkdown report saved to: ${filePath}`);
 }
 
 main().catch((e) => {
