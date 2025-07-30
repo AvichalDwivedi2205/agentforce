@@ -25,10 +25,11 @@ export async function tavilySearch(params: {
   searchDepth?: 'basic'|'advanced';
   includeDomains?: string[];
   excludeDomains?: string[];
+  includeRawContent?: boolean;
 }) {
   const {
-    query, maxResults = 8, timeRange = 'year',
-    searchDepth = 'basic', includeDomains, excludeDomains
+    query, maxResults = 12, timeRange = 'year',
+    searchDepth = 'basic', includeDomains, excludeDomains, includeRawContent = false
   } = params;
 
   return withSpan('tool:tavily.search', async () => {
@@ -39,14 +40,16 @@ export async function tavilySearch(params: {
       time_range: timeRange,
       search_depth: searchDepth,
       include_domains: includeDomains,
-      exclude_domains: excludeDomains
+      exclude_domains: excludeDomains,
+      include_raw_content: includeRawContent
     }, { timeout: 30000 });
 
     const items = (data?.results ?? []).map((r: any) => ({
       url: r.url as string,
       title: r.title as string | undefined,
       snippet: r.content as string | undefined,
-      published_at: r.published_date as string | undefined
+      published_at: r.published_date as string | undefined,
+      raw_content: r.raw_content as string | undefined
     }));
     return { items };
   });

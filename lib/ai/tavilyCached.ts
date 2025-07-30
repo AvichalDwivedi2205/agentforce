@@ -10,11 +10,12 @@ export async function tavilySearchCached(params: {
   searchDepth?: 'basic'|'advanced';
   includeDomains?: string[];
   excludeDomains?: string[];
-}): Promise<{ items: Array<{ url: string; title?: string; snippet?: string; published_at?: string }> }> {
+  includeRawContent?: boolean;
+}): Promise<{ items: Array<{ url: string; title?: string; snippet?: string; published_at?: string; raw_content?: string }> }> {
   const cacheKey = createCacheKey(params);
   
   // Try cache first
-  const cached = readCache<{ items: Array<{ url: string; title?: string; snippet?: string; published_at?: string }> }>(cacheKey, 'tavily', TAVILY_CACHE_TTL);
+  const cached = readCache<{ items: Array<{ url: string; title?: string; snippet?: string; published_at?: string; raw_content?: string }> }>(cacheKey, 'tavily', TAVILY_CACHE_TTL);
   if (cached) {
     console.log('[tavily-cache] Cache hit for query:', params.query.substring(0, 50) + '...');
     return cached;
