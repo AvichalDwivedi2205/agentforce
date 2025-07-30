@@ -2,19 +2,84 @@ import minimist from 'minimist';
 import { runDeepResearch } from './lib/ai/graphs/research/graph.js';
 import fs from 'fs';
 import path from 'path';
+import readline from 'readline';
+
+// Helper function to ask user questions
+function askQuestion(question: string): Promise<string> {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+  
+  return new Promise((resolve) => {
+    rl.question(question, (answer) => {
+      rl.close();
+      resolve(answer.trim());
+    });
+  });
+}
 
 async function main() {
   const argv = minimist(process.argv.slice(2));
   const query = (argv.q || argv.query) as string;
   const from = argv.from as string | undefined;
   const to   = argv.to as string | undefined;
+  const skipClarify = argv['skip-clarify'] || argv.s;
 
   if (!query) {
-    console.error('Usage: tsx index.ts --q "Your question" [--from 2024-10-01] [--to 2025-07-30]');
+    console.error('Usage: tsx index.ts --q "Your question" [--from 2024-10-01] [--to 2025-07-30] [--skip-clarify]');
     process.exit(1);
   }
 
-  const { report, markdown, meta } = await runDeepResearch({ query, from, to });
+  let finalQuery = query;
+  
+  // First run to get clarifying questions (unless skipped)
+  if (!skipClarify) {
+    console.log('🔍 Generating clarifying questions to improve research quality...\n');
+    
+    const { clarifyingQuestions } = await runDeepResearch({ 
+      query, 
+      from, 
+      to, 
+      interactive: true 
+    });
+
+    if (clarifyingQuestions && clarifyingQuestions.length > 0) {
+      console.log('📋 To provide better research, please help clarify your request:\n');
+      
+      const answers: string[] = [];
+      for (const cq of clarifyingQuestions) {
+        console.log(`❓ ${cq.question}`);
+        console.log(`   Purpose: ${cq.purpose}`);
+        
+        if (cq.suggested_answers && cq.suggested_answers.length > 0) {
+          console.log(`   Suggested options: ${cq.suggested_answers.join(', ')}`);
+        }
+        
+        const answer = await askQuestion('   Your answer (or press Enter to skip): ');
+        if (answer) {
+          answers.push(`${cq.question}: ${answer}`);
+        }
+        console.log('');
+      }
+      
+      // Refine the query with answers
+      if (answers.length > 0) {
+        finalQuery = `${query}\n\nAdditional context:\n${answers.join('\n')}`;
+        console.log('✅ Thank you! Running research with your clarifications...\n');
+      } else {
+        console.log('📝 Running research with original query...\n');
+      }
+    }
+  }
+
+  // Run the actual research
+  const { report, markdown, meta } = await runDeepResearch({ 
+    query: finalQuery, 
+    from, 
+    to, 
+    interactive: false 
+  });
 
   console.log('=== META ===');
   console.log(meta);

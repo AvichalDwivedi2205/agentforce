@@ -1,14 +1,20 @@
 import { openrouterCall, perplexityAsk, tavilySearch } from '../../clients.js';
 import {
-  ResearchInput, ResearchState, SubQuestion, Evidence, Report,
-  PROMPT_DECOMPOSE, PROMPT_GAPFILL, PROMPT_SYNTH,
+  ResearchInput, ResearchState, SubQuestion, Evidence, Report, ClarifyingQuestion,
+  PROMPT_DECOMPOSE, PROMPT_GAPFILL, PROMPT_SYNTH, PROMPT_CLARIFY,
   dedupeEvidence, withinWindow
 } from './contracts.js';
 
+// QUICK logger helper
+const log = (...args: any[]) => console.log('[research]', ...args);
+
 // HARD CAPS (call-count budgets)
 const PPLX_CAP = 6;     // by the 6th Perplexity run, we must produce
+const PPLX_DEEP_CAP = 3; // max 3 deep-research calls (knowledge + gap-fill)
 const TAVILY_CAP = 16;
 const OPENROUTER_CAP = 4;
+
+const DEFAULT_OR_MODEL = '';
 
 function pickType(q: any): 'factual'|'knowledge'|'reasoning' {
   const t = (q.type || '').toLowerCase();
@@ -16,46 +22,69 @@ function pickType(q: any): 'factual'|'knowledge'|'reasoning' {
   return 'knowledge';
 }
 
+// Helper to truncate query for Tavily (400 char limit)
+function truncateForTavily(query: string): string {
+  if (query.length <= 400) return query;
+  // Take first 380 chars and add ellipsis
+  return query.substring(0, 380) + '...';
+}
+
+async function generateClarifyingQuestions(input: ResearchInput, state: ResearchState): Promise<ClarifyingQuestion[]> {
+  if (state.openrouterCalls >= OPENROUTER_CAP) return [];
+  
+  const { text } = await openrouterCall({
+    model: DEFAULT_OR_MODEL,
+    messages: [
+      { role: 'system', content: 'Return only JSON array. No prose.' },
+      { role: 'user', content: PROMPT_CLARIFY(input.query) }
+    ],
+    temperature: 0.3
+  });
+
+  let object: any[] = [];
+  try { object = JSON.parse(text || '[]'); } catch { object = []; }
+  
+  state.openrouterCalls++;
+  
+  if (object && Array.isArray(object)) {
+    log('clarify> generated', object.length, 'questions');
+    return object.slice(0, 5).map((q, i) => ({
+      id: `cq${i+1}`,
+      question: String(q.question || '').trim(),
+      purpose: String(q.purpose || '').trim(),
+      suggested_answers: q.suggested_answers || []
+    })).filter(q => q.question.length > 0);
+  }
+  
+  return [];
+}
+
 async function decompose(input: ResearchInput, state: ResearchState): Promise<SubQuestion[]> {
   if (state.openrouterCalls >= OPENROUTER_CAP) return state.subqs;
   
-  // Add schema for better reliability
-  const decomposeSchema = {
-    type: 'array',
-    items: {
-      type: 'object',
-      properties: {
-        question: { type: 'string' },
-        type: { type: 'string', enum: ['factual', 'knowledge', 'reasoning'] },
-        rationale: { type: 'string' }
-      },
-      required: ['question', 'type']
-    }
-  };
-
-  const { object } = await openrouterCall<SubQuestion[]>({
-    model: 'google/gemini-2.5-flash',
+  const { text: decompText } = await openrouterCall({
+    model: DEFAULT_OR_MODEL,
     messages: [
       { role: 'system', content: 'Return only JSON array. No prose.' },
       { role: 'user', content: PROMPT_DECOMPOSE(input.query) }
     ],
-    schema: decomposeSchema,
     temperature: 0.1
   });
+
+  let arr: any[] = [];
+  try { arr = JSON.parse(decompText || '[]'); } catch { arr = []; }
   
   state.openrouterCalls++;
   
-  // Use structured output if available, fallback to text parsing
-  let subqs: SubQuestion[] = [];
-  if (object && Array.isArray(object)) {
-    subqs = object.slice(0, 8).map((x, i) => ({
+  const subqs: SubQuestion[] = (arr || []).slice(0,8).map((x,i)=>({
       id: `sq${i+1}`,
       question: String(x.question || '').trim(),
       rationale: String(x.rationale || '').trim(),
       type: pickType(x)
-    })).filter(s => s.question.length > 0);
-  }
-  
+    })).filter(s=>s.question.length>0);
+
+  log('decompose> subqs', subqs.length);
+
   return subqs.length ? subqs : [{
     id: 'sq1', question: input.query, type: 'knowledge', rationale: 'fallback'
   }];
@@ -63,56 +92,107 @@ async function decompose(input: ResearchInput, state: ResearchState): Promise<Su
 
 async function assignAndGather(input: ResearchInput, subqs: SubQuestion[], state: ResearchState) {
   const evidence: Evidence[] = [];
+  log('gather> starting for', subqs.length, 'subqs');
 
   // Simple routing: factual -> Tavily; knowledge -> Perplexity(pro); reasoning -> Perplexity(reasoning)
   const tasks = subqs.map(async (sq) => {
+    log('gather> processing subq:', sq.id, sq.type, sq.question.substring(0, 100) + '...');
+    
     if (sq.type === 'factual' && state.tavilyCalls < TAVILY_CAP) {
       state.tavilyCalls++;
-      const res = await tavilySearch({
-        query: sq.question, maxResults: 8,
-        timeRange: input.from || input.to ? 'y' : 'all',
-        searchDepth: 'basic'
-      });
-      for (const it of res.items) {
-        if (withinWindow(it.published_at, input.from, input.to)) {
-          evidence.push({ ...it, source_tool: 'tavily' });
+      log('gather> tavily call for', sq.id);
+      try {
+        const res = await tavilySearch({
+          query: truncateForTavily(sq.question),
+          maxResults: 8,
+          timeRange: 'year',
+          searchDepth: 'basic'
+        });
+        log('gather> tavily returned', res.items.length, 'items for', sq.id);
+        for (const it of res.items) {
+          if (withinWindow(it.published_at, input.from, input.to)) {
+            evidence.push({ ...it, source_tool: 'tavily' });
+          }
         }
+      } catch (err: any) {
+        log('gather> tavily error for', sq.id, ':', err?.message || err);
       }
     } else {
-      if (state.pplxCalls >= PPLX_CAP) return;
+      if (state.pplxCalls >= PPLX_CAP) {
+        log('gather> skipping', sq.id, '- perplexity budget exhausted');
+        return;
+      }
       state.pplxCalls++;
-      const mode = sq.type === 'reasoning' ? 'reasoning' : 'pro';
-      const a = await perplexityAsk({ prompt: sq.question, mode });
-      // Treat model text as a hint; main value is citations
-      const cites = (a.citations || []).slice(0, 6);
-      if (cites.length && state.tavilyCalls < TAVILY_CAP) {
-        // fetch Tavily metadata for those URLs (batch not offered; do single calls via query string)
-        state.tavilyCalls++;
-        const res = await tavilySearch({ query: sq.question, maxResults: 8, timeRange: 'all', searchDepth: 'basic' });
-        // Merge: prefer tavily items that match cited domains, otherwise keep cites as raw Evidence
-        const byDomain = new Map<string, Evidence>();
-        for (const it of res.items) {
-          try { byDomain.set(new URL(it.url).hostname.replace(/^m\./,'').replace(/^www\./,''), { ...it, source_tool: 'tavily' }); } catch {}
-        }
-        for (const url of cites) {
-          let added = false;
-          try {
-            const host = new URL(url).hostname.replace(/^m\./,'').replace(/^www\./,'');
-            const hit = byDomain.get(host);
-            if (hit && withinWindow(hit.published_at, input.from, input.to)) {
-              evidence.push(hit);
-              added = true;
-            }
-          } catch {}
-          if (!added) evidence.push({ url, source_tool: 'perplexity' });
-        }
+      
+      // Use deep-research for knowledge questions (if budget allows), reasoning for reasoning questions
+      let mode: 'pro' | 'reasoning' | 'deep-research';
+      if (sq.type === 'reasoning') {
+        mode = 'reasoning';
+      } else if (sq.type === 'knowledge' && state.pplxDeepCalls < PPLX_DEEP_CAP) {
+        mode = 'deep-research';
+        state.pplxDeepCalls++;
+        log('gather> using deep-research for knowledge question, deep calls:', state.pplxDeepCalls);
       } else {
-        for (const url of cites) evidence.push({ url, source_tool: 'perplexity' });
+        mode = 'pro';
+      }
+      log('gather> perplexity call for', sq.id, 'mode:', mode);
+      try {
+        const a = await perplexityAsk({ prompt: sq.question, mode });
+        log('gather> perplexity returned', a.citations?.length || 0, 'citations for', sq.id);
+        
+        // Treat model text as a hint; main value is citations
+        const cites = (a.citations || []).slice(0, 6);
+        if (cites.length && state.tavilyCalls < TAVILY_CAP) {
+          // fetch Tavily metadata for those URLs (batch not offered; do single calls via query string)
+          state.tavilyCalls++;
+          log('gather> tavily follow-up for citations from', sq.id);
+          try {
+            const res = await tavilySearch({
+              query: truncateForTavily(sq.question),
+              maxResults: 8,
+              timeRange: 'year',
+              searchDepth: 'basic'
+            });
+            log('gather> tavily follow-up returned', res.items.length, 'items');
+            
+            // Merge: prefer tavily items that match cited domains, otherwise keep cites as raw Evidence
+            const byDomain = new Map<string, Evidence>();
+            for (const it of res.items) {
+              try {
+                byDomain.set(new URL(it.url).hostname.replace(/^m\./, '').replace(/^www\./, ''), {
+                  ...it,
+                  source_tool: 'tavily'
+                });
+              } catch {}
+            }
+            for (const url of cites) {
+              let added = false;
+              try {
+                const host = new URL(url).hostname.replace(/^m\./, '').replace(/^www\./, '');
+                const hit = byDomain.get(host);
+                if (hit && withinWindow(hit.published_at, input.from, input.to)) {
+                  evidence.push(hit);
+                  added = true;
+                }
+              } catch {}
+              if (!added) evidence.push({ url, source_tool: 'perplexity' });
+            }
+          } catch (err: any) {
+            log('gather> tavily follow-up error for', sq.id, ':', err?.message || err);
+            // Still add raw citations if Tavily fails
+            for (const url of cites) evidence.push({ url, source_tool: 'perplexity' });
+          }
+        } else {
+          for (const url of cites) evidence.push({ url, source_tool: 'perplexity' });
+        }
+      } catch (err: any) {
+        log('gather> perplexity error for', sq.id, ':', err?.message || err);
       }
     }
   });
 
   await Promise.allSettled(tasks);
+  log('gather> collected', evidence.length, 'raw evidence items');
   return dedupeEvidence(evidence);
 }
 
@@ -130,14 +210,24 @@ function findContradictions(evd: Evidence[]): Array<{ topic: string; urls: strin
 async function gapFill(input: ResearchInput, state: ResearchState, conflictTopic: string) {
   if (state.pplxCalls >= PPLX_CAP && state.tavilyCalls >= TAVILY_CAP) return [] as Evidence[];
 
-  // Use Perplexity reasoning + Tavily advanced
+  // Use Perplexity deep-research for comprehensive gap-filling + Tavily advanced
   const results: Evidence[] = [];
 
   if (state.pplxCalls < PPLX_CAP) {
     state.pplxCalls++;
+    
+    // Use deep-research if budget allows, otherwise fallback to reasoning
+    const mode = state.pplxDeepCalls < PPLX_DEEP_CAP ? 'deep-research' : 'reasoning';
+    if (mode === 'deep-research') {
+      state.pplxDeepCalls++;
+      log('gapfill> using perplexity deep-research, deep calls:', state.pplxDeepCalls);
+    } else {
+      log('gapfill> deep-research budget exhausted, using reasoning mode');
+    }
+    
     const a = await perplexityAsk({
       prompt: PROMPT_GAPFILL(input.query, conflictTopic),
-      mode: 'reasoning'
+      mode
     });
     // Extract URLs from last line if present (JSON array), otherwise from citations
     const lines = a.text.trim().split('\n');
@@ -150,10 +240,11 @@ async function gapFill(input: ResearchInput, state: ResearchState, conflictTopic
   if (state.tavilyCalls < TAVILY_CAP) {
     state.tavilyCalls++;
     const t = await tavilySearch({
-      query: conflictTopic,
+      query: truncateForTavily(conflictTopic),
       searchDepth: 'advanced',
       maxResults: 8,
-      timeRange: input.from || input.to ? 'y' : 'all'
+      timeRange: 'year', // Use 'year' instead of 'y'
+      includeDomains: state.contradictions[0].urls.map(u => new URL(u).hostname)
     });
     for (const it of t.items) {
       if (withinWindow(it.published_at, input.from, input.to)) {
@@ -197,34 +288,83 @@ ${report.limitations.map(l => `- ${l}`).join('\n')}
 `;
 }
 
-export async function runDeepResearch(input: ResearchInput): Promise<{ report: Report; markdown: string; meta: any }> {
+export async function runDeepResearch(input: ResearchInput): Promise<{ report: Report; markdown: string; meta: any; clarifyingQuestions?: ClarifyingQuestion[] }> {
   const state: ResearchState = {
     input,
+    clarifyingQuestions: [],
+    refinedQuery: input.query,
     subqs: [],
     evidence: [],
     contradictions: [],
     pplxCalls: 0,
+    pplxDeepCalls: 0,
     tavilyCalls: 0,
     openrouterCalls: 0
   };
 
+  // 0) Generate clarifying questions (if interactive mode)
+  if (input.interactive !== false) {
+    state.clarifyingQuestions = await generateClarifyingQuestions(input, state);
+    
+    // If clarifying questions were generated, return them for user input
+    if (state.clarifyingQuestions.length > 0) {
+      return {
+        report: {
+          query: input.query,
+          executive_summary: '',
+          key_findings: [],
+          sections: [],
+          limitations: []
+        },
+        markdown: '',
+        meta: {
+          pplxCalls: state.pplxCalls,
+          pplxDeepCalls: state.pplxDeepCalls,
+          tavilyCalls: state.tavilyCalls,
+          openrouterCalls: state.openrouterCalls,
+          subqCount: 0,
+          evidenceCount: 0,
+          clarifyingQuestionsGenerated: true
+        },
+        clarifyingQuestions: state.clarifyingQuestions
+      };
+    }
+  }
+
   // 1) Decompose
-  state.subqs = await decompose(input, state);
+  state.subqs = await decompose({ ...input, query: state.refinedQuery }, state);
 
   // 2–3) Assign + Parallel gather
   const gathered = await assignAndGather(input, state.subqs, state);
-
+  
   // Filter by time window
   state.evidence = gathered.filter(e => withinWindow(e.published_at, input.from, input.to));
-
+  log('evidence> after initial gather:', state.evidence.length);
+  
   // 4) Validate/Cross-check (lean)
   state.contradictions = findContradictions(state.evidence);
-
+  log('contradictions>', state.contradictions.length);
+  
   // 5) One gap-fill pass if we still have Perplexity or Tavily budget left
   if (state.contradictions.length) {
     const extra = await gapFill(input, state, state.contradictions[0].topic);
     // Merge and dedupe again
     state.evidence = dedupeEvidence([...state.evidence, ...extra]);
+    log('gapfill> added', extra.length, 'items. evidence now', state.evidence.length);
+  }
+
+  // Fallback: if still no evidence, try one broad Tavily search on the whole query
+  if (state.evidence.length === 0 && state.tavilyCalls < TAVILY_CAP) {
+    log('fallback> no evidence, running broad Tavily search');
+    state.tavilyCalls++;
+    const t = await tavilySearch({ 
+      query: truncateForTavily(state.refinedQuery || input.query), 
+      maxResults: 10, 
+      timeRange: 'year', 
+      searchDepth: 'advanced' 
+    });
+    state.evidence = dedupeEvidence(t.items.map((it: any)=>({ ...it, source_tool:'tavily' as const })));
+    log('fallback> tavily items', state.evidence.length);
   }
 
   // 6) Synthesize (structured)
@@ -296,7 +436,7 @@ export async function runDeepResearch(input: ResearchInput): Promise<{ report: R
   const evidenceBlock = JSON.stringify(citeable, null, 2);
 
   const { object } = await openrouterCall<Report>({
-    model: 'google/gemini-2.5-flash',
+    model: DEFAULT_OR_MODEL,
     messages: [
       { role: 'system', content: 'Return ONLY JSON strictly matching the provided schema.' },
       { role: 'user', content: `Evidence:\n${evidenceBlock}\n\n${PROMPT_SYNTH(input.query)}` }
@@ -329,6 +469,7 @@ export async function runDeepResearch(input: ResearchInput): Promise<{ report: R
     markdown,
     meta: {
       pplxCalls: state.pplxCalls,
+      pplxDeepCalls: state.pplxDeepCalls,
       tavilyCalls: state.tavilyCalls,
       openrouterCalls: state.openrouterCalls,
       subqCount: state.subqs.length,

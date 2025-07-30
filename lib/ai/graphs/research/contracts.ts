@@ -7,6 +7,13 @@ export type SubQuestion = {
   type: 'factual' | 'knowledge' | 'reasoning';
 };
 
+export type ClarifyingQuestion = {
+  id: string;
+  question: string;
+  purpose: string;
+  suggested_answers?: string[];
+};
+
 export type Evidence = {
   url: string;
   title?: string;
@@ -35,14 +42,18 @@ export type ResearchInput = {
   query: string;
   from?: string; // ISO
   to?: string;   // ISO
+  interactive?: boolean; // Whether to ask clarifying questions
 };
 
 export type ResearchState = {
   input: ResearchInput;
+  clarifyingQuestions: ClarifyingQuestion[];
+  refinedQuery: string;
   subqs: SubQuestion[];
   evidence: Evidence[];
   contradictions: Array<{ topic: string; urls: string[] }>;
   pplxCalls: number;
+  pplxDeepCalls: number; // track deep-research calls separately
   tavilyCalls: number;
   openrouterCalls: number;
 };
@@ -77,8 +88,31 @@ export function withinWindow(pub?: string, from?: string, to?: string) {
 }
 
 // -------------- prompts ----------------
+export const PROMPT_CLARIFY = (q: string) => `
+You are a research assistant. The user has asked: "${q}"
+
+To provide the best research, generate 3-5 clarifying questions that would help narrow down the scope and improve the research quality.
+
+For each question, provide:
+- The clarifying question
+- Why this question is important (purpose)
+- 2-3 suggested answer options (if applicable)
+
+Return JSON array with objects: { "question": "...", "purpose": "...", "suggested_answers": ["option1", "option2", "option3"] }
+
+Focus on:
+- Time scope (when/what period?)
+- Geographic scope (where/which regions?)
+- Industry/sector specifics
+- Stakeholder perspective (who is affected?)
+- Specific aspects of interest
+- Scale/magnitude (how big/small?)
+
+User question: ${q}
+`;
+
 export const PROMPT_DECOMPOSE = (q: string) => `
-Decompose the user question into 6 non-overlapping sub-questions.
+Decompose the user question into 4-8 non-overlapping sub-questions.
 For each, label it as one of: 
 - factual (requires up-to-date sources or numbers/dates),
 - knowledge (general synthesis),

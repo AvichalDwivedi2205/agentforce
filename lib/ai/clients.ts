@@ -21,13 +21,13 @@ async function withSpan<T>(name: string, fn: () => Promise<T>) {
 export async function tavilySearch(params: {
   query: string;
   maxResults?: number;
-  timeRange?: 'd'|'w'|'m'|'y'|'all';
+  timeRange?: 'day'|'week'|'month'|'year';
   searchDepth?: 'basic'|'advanced';
   includeDomains?: string[];
   excludeDomains?: string[];
 }) {
   const {
-    query, maxResults = 8, timeRange = 'all',
+    query, maxResults = 8, timeRange = 'year',
     searchDepth = 'basic', includeDomains, excludeDomains
   } = params;
 
@@ -53,14 +53,35 @@ export async function tavilySearch(params: {
 }
 
 // --- Perplexity -----------------------------------------------------------
-type PplxMode = 'pro' | 'reasoning';
+type PplxMode = 'pro' | 'reasoning' | 'deep-research';
 export async function perplexityAsk(params: {
   prompt: string;
   mode?: PplxMode;      // 'pro' default
   temperature?: number; // default 0.2
 }) {
   const { prompt, mode = 'pro', temperature = 0.2 } = params;
-  const model = mode === 'reasoning' ? 'sonar-reasoning' : 'sonar-pro';
+  
+  // Map modes to appropriate models and system prompts
+  let model: string;
+  let systemPrompt: string;
+  let timeout: number;
+  
+  switch (mode) {
+    case 'reasoning':
+      model = 'sonar-reasoning';
+      systemPrompt = 'You are a reasoning assistant. Think step-by-step and provide logical analysis. Cite sources when possible.';
+      timeout = 60000;
+      break;
+    case 'deep-research':
+      model = 'sonar-deep-research'; // Use Perplexity's deep research model
+      systemPrompt = 'You are a deep research assistant. Conduct thorough analysis with multiple sources. Provide comprehensive insights with detailed citations. Be thorough and analytical. Research deeply and provide nuanced understanding.';
+      timeout = 600000; // 4 minutes for deep research as it takes 2-4 minutes per ZDNET
+      break;
+    default:
+      model = 'sonar-pro';
+      systemPrompt = 'Be concise. Cite sources when possible.';
+      timeout = 60000;
+  }
 
   return withSpan(`tool:perplexity.${mode}`, async () => {
     const { data } = await axios.post(
@@ -68,7 +89,7 @@ export async function perplexityAsk(params: {
       {
         model,
         messages: [
-          { role: 'system', content: 'Be concise. Cite sources when possible.' },
+          { role: 'system', content: systemPrompt },
           { role: 'user', content: prompt }
         ],
         temperature,
@@ -81,7 +102,7 @@ export async function perplexityAsk(params: {
           Authorization: `Bearer ${ENV.PERPLEXITY_API_KEY}`,
           'Content-Type': 'application/json'
         },
-        timeout: 60000
+        timeout
       }
     );
 
@@ -118,7 +139,9 @@ export async function openrouterCall<T = unknown>(params: {
       {
         headers: {
           Authorization: `Bearer ${ENV.OPENROUTER_API_KEY}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...(ENV.OPENROUTER_REFERER ? { 'HTTP-Referer': ENV.OPENROUTER_REFERER } : {}),
+          ...(ENV.OPENROUTER_APP_TITLE ? { 'X-Title': ENV.OPENROUTER_APP_TITLE } : {})
         },
         timeout: 90000
       }
