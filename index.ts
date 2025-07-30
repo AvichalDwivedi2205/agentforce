@@ -27,9 +27,12 @@ async function main() {
   const skipClarify = argv['skip-clarify'] || argv.s;
   const deepMode = argv.deep || argv.d;
   const clarifyModel = argv['clarify-model'] as 'gemini' | 'mistral' | undefined;
+  const extraDeep = argv['extra-deep'];
+  const noExtraDeep = argv['no-extra-deep'];
+  const clearCache = argv['cache-clear'];
 
   if (!query) {
-    console.error('Usage: tsx index.ts --q "Your question" [--from 2024-10-01] [--to 2025-07-30] [--skip-clarify] [--deep] [--clarify-model gemini|mistral]');
+    console.error('Usage: tsx index.ts --q "Your question" [--from 2024-10-01] [--to 2025-07-30] [--skip-clarify] [--deep] [--extra-deep] [--no-extra-deep] [--cache-clear] [--clarify-model gemini|mistral]');
     process.exit(1);
   }
 
@@ -49,7 +52,10 @@ async function main() {
       to, 
       interactive: true,
       deepMode,
-      clarifyModel
+      clarifyModel,
+      extraDeep,
+      noExtraDeep,
+      clearCache
     });
 
     if (clarifyingQuestions && clarifyingQuestions.length > 0) {
@@ -88,7 +94,10 @@ async function main() {
     to, 
     interactive: false,
     deepMode,
-    clarifyModel
+    clarifyModel,
+    extraDeep,
+    noExtraDeep,
+    clearCache
   });
 
   console.log('=== META ===');

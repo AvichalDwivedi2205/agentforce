@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "setup": "tsx setup.ts",
     "start": "tsx index.ts",
     "dev": "tsx watch index.ts"
   },
