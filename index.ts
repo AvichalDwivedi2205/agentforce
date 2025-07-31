@@ -176,44 +176,84 @@ async function main() {
 function generateIdeationMarkdown(result: any): string {
   const { brief, ideas, scores, onePager, decisionLog, meta } = result;
   
-  let md = `# Ideation Report\n\n`;
-  md += `**Generated:** ${new Date().toISOString()}\n`;
-  md += `**Topic:** ${brief.topic}\n`;
-  md += `**Runtime:** ${meta.runtime_ms}ms\n`;
-  md += `**API Calls:** OpenRouter: ${meta.costs.openrouter}, Tavily: ${meta.costs.tavily}, Perplexity: ${meta.costs.perplexity}\n\n`;
+  // Sort ideas by ICE score for proper ranking
+  const sortedScores = scores.sort((a: any, b: any) => b.ICE.score - a.ICE.score);
+  const topIdea = ideas.find((idea: any) => idea.id === sortedScores[0]?.idea_id);
   
-  md += `## Brief\n\n`;
-  md += `**Goal:** ${brief.goal}\n\n`;
-  md += `**Audience:** ${brief.audience}\n\n`;
-  md += `**Constraints:** ${brief.constraints.join(', ')}\n\n`;
-  md += `**Time Horizon:** ${brief.time_horizon}\n\n`;
-  md += `**Risk Appetite:** ${brief.risk_appetite}\n\n`;
-  md += `**Success Metric:** ${brief.success_metric}\n\n`;
+  let md = `# 💡 Business Ideation Report\n\n`;
+  md += `**📊 Generated:** ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}\n`;
+  md += `**🎯 Topic:** ${brief.topic}\n`;
+  md += `**⏱️ Processing Time:** ${Math.round(meta.runtime_ms / 1000)}s\n`;
+  md += `**💰 API Usage:** ${meta.costs.openrouter} LLM calls, ${meta.costs.tavily} searches, ${meta.costs.perplexity} research queries\n\n`;
   
-  md += `## Ideas (${ideas.length})\n\n`;
+  md += `---\n\n## 📋 Project Brief\n\n`;
+  md += `**🎯 Primary Goal:** ${brief.goal}\n\n`;
+  md += `**👥 Target Audience:** ${brief.audience}\n\n`;
+  md += `**⚠️ Key Constraints:**\n${brief.constraints?.map((c: string) => `• ${c}`).join('\n') || 'None specified'}\n\n`;
+  md += `**📅 Timeline:** ${brief.time_horizon} (${brief.time_horizon === 'weeks' ? '1-12 weeks' : brief.time_horizon === 'months' ? '3-6 months' : '6-18 months'})\n\n`;
+  md += `**🎲 Risk Tolerance:** ${brief.risk_appetite?.toUpperCase()} - ${brief.risk_appetite === 'low' ? 'Conservative approach, proven concepts' : brief.risk_appetite === 'medium' ? 'Balanced innovation with validation' : 'Bold moves, high-impact experiments'}\n\n`;
+  md += `**📈 Success Metrics:** ${brief.success_metric}\n\n`;
   
-  ideas.forEach((idea: any, i: number) => {
-    const score = scores.find((s: any) => s.idea_id === idea.id);
-    md += `### ${i + 1}. ${idea.title}\n\n`;
-    md += `**Summary:** ${idea.summary}\n\n`;
-    md += `**Who Benefits:** ${idea.who_benefits.join(', ')}\n\n`;
-    md += `**Why Now:** ${idea.why_now}\n\n`;
-    md += `**Key Assumptions:**\n${idea.assumptions.map((a: string) => `- ${a}`).join('\n')}\n\n`;
-    md += `**Risks/Harms:**\n${idea.risks_harms.map((r: string) => `- ${r}`).join('\n')}\n\n`;
-    md += `**Validation Test:**\n- **Design:** ${idea.test.design}\n- **Success:** ${idea.test.success}\n- **Timeline:** ${idea.test.timebox}\n- **Budget:** ${idea.test.budget}\n\n`;
-    md += `**Effort:** ${idea.effort.dev_weeks} weeks, ${idea.effort.complexity} complexity\n\n`;
-    md += `**Dependencies:** ${idea.effort.deps.join(', ')}\n\n`;
-    md += `**Scores:** ICE=${score?.ICE.score}, RICE=${score?.RICE.score}\n\n`;
+  md += `---\n\n## 🏆 TOP RECOMMENDATION\n\n`;
+  if (topIdea && sortedScores[0]) {
+    const topScore = sortedScores[0];
+    md += `### 🥇 ${topIdea.title}\n\n`;
+    md += `**💭 What it is:** ${topIdea.summary}\n\n`;
+    md += `**🎯 Perfect for:** ${topIdea.who_benefits?.join(' • ') || 'Target users'}\n\n`;
+    md += `**⏰ Why now:** ${topIdea.why_now}\n\n`;
+    md += `**🧪 Quick Test:** ${topIdea.test?.design || 'Build MVP and test with target users'}\n\n`;
+    md += `**⚡ Effort Required:** ${topIdea.effort?.dev_weeks || 'TBD'} weeks (${topIdea.effort?.complexity || 'medium'} complexity)\n\n`;
+    md += `**📊 Confidence Score:** ${topScore.ICE.score}/5 (Impact: ${topScore.ICE.impact}, Confidence: ${topScore.ICE.confidence}, Ease: ${topScore.ICE.ease})\n\n`;
+  }
+  
+  md += `---\n\n## 💡 All Generated Ideas\n\n`;
+  
+  sortedScores.forEach((score: any, i: number) => {
+    const idea = ideas.find((idea: any) => idea.id === score.idea_id);
+    if (!idea) return;
     
-    if (idea.sources.length > 0) {
-      md += `**Sources:**\n${idea.sources.map((s: any) => `- [${s.title}](${s.url})`).join('\n')}\n\n`;
+    const rank = i + 1;
+    const emoji = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '💡';
+    
+    md += `### ${emoji} ${rank}. ${idea.title}\n\n`;
+    md += `**📊 Score:** ${score.ICE.score}/5 • **💰 ROI Potential:** ${score.RICE.score}/300\n\n`;
+    md += `**📝 Description:** ${idea.summary}\n\n`;
+    md += `**👥 Who Benefits:** ${idea.who_benefits?.join(' • ') || 'Target users'}\n\n`;
+    md += `**⏰ Why Now:** ${idea.why_now}\n\n`;
+    
+    if (idea.assumptions && idea.assumptions.length > 0) {
+      md += `**🤔 Key Assumptions:**\n${idea.assumptions.map((a: string) => `• ${a}`).join('\n')}\n\n`;
+    }
+    
+    if (idea.risks_harms && idea.risks_harms.length > 0) {
+      md += `**⚠️ Main Risks:**\n${idea.risks_harms.map((r: string) => `• ${r}`).join('\n')}\n\n`;
+    }
+    
+    md += `**🧪 Validation Test:** ${idea.test?.design || 'Build simple prototype and gather user feedback'}\n`;
+    md += `• **Success Criteria:** ${idea.test?.success || 'Positive user response and engagement'}\n`;
+    md += `• **Timeline:** ${idea.test?.timebox || '2-4 weeks'}\n`;
+    md += `• **Budget:** ${idea.test?.budget || 'Low'}\n\n`;
+    
+    md += `**⚡ Implementation:**\n`;
+    md += `• **Time Required:** ${idea.effort?.dev_weeks || 'TBD'} weeks\n`;
+    md += `• **Complexity:** ${idea.effort?.complexity || 'medium'}\n`;
+    if (idea.effort?.deps && idea.effort.deps.length > 0) {
+      md += `• **Dependencies:** ${idea.effort.deps.join(', ')}\n`;
+    }
+    md += `\n`;
+    
+    if (idea.sources && idea.sources.length > 0) {
+      md += `**📚 Research Sources:** ${idea.sources.length} references found\n\n`;
     }
     
     md += `---\n\n`;
   });
   
-  md += `## Top Idea Analysis\n\n${onePager}\n\n`;
-  md += `## Decision Log\n\n${decisionLog}\n`;
+  md += `## 📋 Detailed Business Analysis\n\n${onePager}\n\n`;
+  
+  md += `---\n\n## 🎯 Decision Summary\n\n${decisionLog}\n\n`;
+  
+  md += `---\n\n*Report generated by AI Ideation Agent • All ideas require further validation*`;
   
   return md;
 }
