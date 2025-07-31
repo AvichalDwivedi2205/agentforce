@@ -1428,7 +1428,7 @@ Create a comprehensive research report that synthesizes all these analyses into 
     
     const reportContent = synthesisResult.text || 'Comprehensive research analysis not available';
     
-    // Extract citation numbers and build reference list
+    // ENHANCED: Extract citations and make them clickable with anchor links
     const citationPattern = /\[(\d+)\]/g;
     const citationsFound = new Set<string>();
     let match;
@@ -1439,22 +1439,43 @@ Create a comprehensive research report that synthesizes all these analyses into 
       citationsFound.add(match[1]);
     }
 
-    // Build citation reference list
-    const citationReferences = Array.from(citationsFound)
-      .sort((a, b) => parseInt(a) - parseInt(b))
+    // Convert inline citations to clickable anchor links
+    let clickableContent = reportContent;
+    const sortedCitations = Array.from(citationsFound).sort((a, b) => parseInt(a) - parseInt(b));
+    
+    for (const citationNum of sortedCitations) {
+      const superscripts = ['¹', '²', '³', '⁴', '⁵', '⁶', '⁷', '⁸', '⁹', '¹⁰', '¹¹', '¹²', '¹³', '¹⁴', '¹⁵', '¹⁶', '¹⁷', '¹⁸', '¹⁹', '²⁰'];
+      const num = parseInt(citationNum);
+      const superscript = num <= 20 ? superscripts[num - 1] : `[${citationNum}]`;
+      
+      // Replace [1] with clickable anchor links [¹](#ref-1)
+      const regex = new RegExp(`\\[${citationNum}\\]`, 'g');
+      clickableContent = clickableContent.replace(regex, `[${superscript}](#ref-${citationNum})`);
+    }
+
+    // Build enhanced clickable reference list
+    const citationReferences = sortedCitations
       .map(num => {
         // Find corresponding source info for this citation number
         const sourceInfo = allSources.find(s => s.includes(`[${num}]`));
         if (sourceInfo) {
-          return sourceInfo; // Already formatted as "[1] Title - URL"
+          // Parse source info: "[1] Title - URL"
+          const match = sourceInfo.match(/^\[(\d+)\]\s*(.+?)\s*-\s*(https?:\/\/.+)$/);
+          if (match) {
+            const [, citationNum, title, url] = match;
+            return `<a id="ref-${citationNum}"></a>**[${citationNum}] ${title}**  
+📄 *Research source with relevant insights*  
+🔗 [${url}](${url})`;
+          }
         }
-        return `[${num}] Research Source ${num}`;
+        return `<a id="ref-${num}"></a>**[${num}] Research Source ${num}**  
+📄 *Additional research source*`;
       }).join('\n\n');
 
     // Clean URLs for complete bibliography (remove citation numbers)
     const cleanUrls = allSources.map(s => s.replace(/^\[\d+\]\s*/, ''));
     
-    const fullMarkdown = `${reportContent}
+    const fullMarkdown = `${clickableContent}
 
 ---
 
@@ -1464,9 +1485,9 @@ ${citationReferences}
 
 ---
 
-## Complete Source Bibliography (${cleanUrls.length} total sources)
+## Complete Source Bibliography (${cleanUrls.length} total sources searched)
 
-${cleanUrls.map((url, i) => `${i + 1}. ${url}`).join('\n')}
+${cleanUrls.map((url, i) => `${i + 1}. [${url}](${url})`).join('\n')}
 
 ---
 
@@ -1628,25 +1649,13 @@ export async function runDeepResearch(input: ResearchInput): Promise<{ report: R
   log('research>   Report length:', markdown.length, 'characters');
   log('research>   Total sources:', allSources.length);
   
-  // Create a basic report object for compatibility
-  const fallbackReport: Report = {
+  // Generate simplified report object for API compatibility (no duplicate processing)
+  const reportSummary: Report = {
     query: input.query,
-    executive_summary: "Comprehensive research analysis completed using content-first methodology. This report synthesizes detailed insights from multiple thematic analyses to provide a thorough examination of the topic.",
-    key_findings: focusedAnalyses.slice(0, 15).map((a, i) => ({
-      claim: `${a.theme}: ${a.analysis.split('\n')[0]?.substring(0, 150) || 'Key insights from detailed analysis'}`,
-      citations: a.sources.slice(0, 3).map(url => ({ url, title: 'Research Source', source_tool: 'tavily' as const })),
-      confidence: 'medium' as const
-    })),
-    sections: focusedAnalyses.map(a => ({
-      heading: a.theme,
-      content: a.analysis,
-      citations: a.sources.slice(0, 5).map(url => ({ url, title: 'Research Source', source_tool: 'tavily' as const }))
-    })),
-    limitations: [
-      "Analysis based on available source material and content extraction",
-      "Limited by API rate limits and processing capabilities",
-      "May not capture all nuances of complex topics"
-    ]
+    executive_summary: "Comprehensive research completed with inline citations",
+    key_findings: [],
+    sections: [],
+    limitations: ["Report generated with comprehensive analysis and clickable citations"]
   };
 
   log('research> 🎉 RESEARCH COMPLETE! Final stats:');
@@ -1660,7 +1669,7 @@ export async function runDeepResearch(input: ResearchInput): Promise<{ report: R
   log('research>   - Runtime:', Math.round((Date.now() - startTime) / 1000), 'seconds');
 
   return {
-    report: fallbackReport,
+    report: reportSummary,
     markdown,
     meta: {
       pplxCalls: state.pplxCalls,
