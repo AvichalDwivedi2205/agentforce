@@ -20,41 +20,38 @@ function askQuestion(question: string): Promise<string> {
 }
 
 async function main() {
-  const argv = minimist(process.argv.slice(2));
+  // Filter out the extra -- separator that pnpm adds
+  const args = process.argv.slice(2).filter(arg => arg !== '--');
+  const argv = minimist(args);
   const query = (argv.q || argv.query) as string;
   const from = argv.from as string | undefined;
   const to   = argv.to as string | undefined;
   const skipClarify = argv['skip-clarify'] || argv.s;
   const deepMode = argv.deep || argv.d;
   const clarifyModel = argv['clarify-model'] as 'gemini' | 'mistral' | undefined;
-  const extraDeep = argv['extra-deep'];
-  const noExtraDeep = argv['no-extra-deep'];
-  const clearCache = argv['cache-clear'];
+  const clearCache = argv['clear-cache'];
 
   if (!query) {
-    console.error('Usage: tsx index.ts --q "Your question" [--from 2024-10-01] [--to 2025-07-30] [--skip-clarify] [--deep] [--extra-deep] [--no-extra-deep] [--cache-clear] [--clarify-model gemini|mistral]');
+    console.error('Usage: pnpm start -- --q "Your question" [--deep] [--skip-clarify] [--clear-cache] [--from 2024-01-01] [--to 2024-12-31] [--clarify-model gemini|mistral]');
     process.exit(1);
   }
 
   if (deepMode) {
-    console.log('🚀 Deep Research Mode: Using Gemini models and enhanced budgets');
+    console.log('🚀 Deep Research Mode: Using sonar-pro models and advanced search depth');
   }
 
   let finalQuery = query;
   
-  // First run to get clarifying questions (unless skipped)
+  // First run to get exactly 2 clarifying questions (unless skipped)
   if (!skipClarify) {
-    console.log('🔍 Generating clarifying questions to improve research quality...\n');
+    console.log('🔍 Generating 2 clarifying questions to improve research quality...\n');
     
     const { clarifyingQuestions } = await runDeepResearch({ 
       query, 
       from, 
       to, 
-      interactive: true,
       deepMode,
       clarifyModel,
-      extraDeep,
-      noExtraDeep,
       clearCache
     });
 
@@ -87,17 +84,16 @@ async function main() {
     }
   }
 
-  // Run the actual research
+  // Run the actual research (skip clarifying questions on this call)
+  console.log('🚀 Starting comprehensive research...\n');
   const { report, markdown, meta } = await runDeepResearch({ 
     query: finalQuery, 
     from, 
     to, 
-    interactive: false,
     deepMode,
     clarifyModel,
-    extraDeep,
-    noExtraDeep,
-    clearCache
+    clearCache,
+    skipClarify: true  // Skip clarifying questions on the actual research call
   });
 
   console.log('=== META ===');

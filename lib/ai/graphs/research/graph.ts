@@ -13,16 +13,46 @@ import { clearCache } from '../../../cache/fsCache.js';
 // QUICK logger helper
 const log = (...args: any[]) => console.log('[research]', ...args);
 
-// COST-OPTIMIZED BUDGET CAPS - Sonar Pro + OpenRouter only
-const PPLX_CAP = 2;     // normal mode: 2 Sonar Pro calls (~$0.05-0.10)
-const PPLX_CAP_DEEP = 4; // deep mode: 4 Sonar Pro calls (~$0.15-0.20)
-const TAVILY_CAP = 15;   // normal mode: cached after first use
-const TAVILY_CAP_DEEP = 25; // deep mode: more searches, but cached
-const OPENROUTER_CAP = 8; // increased for comprehensive synthesis
+// DYNAMIC RESEARCH CONFIGURATION
 const RUNTIME_CAP_MS = 6 * 60 * 1000; // 6 minutes max runtime
 
+interface ResearchLimits {
+  maxParts: number;          // 3-6 parts based on complexity
+  tavilyPerPart: number;     // exactly 1 call per part
+  sonarPerPart: number;      // exactly 1 call per part
+  tavilyMaxResults: number;  // 20 results per search for quality
+  searchDepth: 'basic' | 'advanced';
+  sonarModel: 'sonar' | 'sonar-pro';
+  openrouterCap: number;     // for synthesis
+}
+
+function getResearchLimits(mode: 'deep' | 'deeper'): ResearchLimits {
+  if (mode === 'deeper') {
+    return {
+      maxParts: 6,
+      tavilyPerPart: 1,
+      sonarPerPart: 1,
+      tavilyMaxResults: 20,
+      searchDepth: 'advanced',
+      sonarModel: 'sonar-pro',
+      openrouterCap: 8
+    };
+  }
+  
+  // deep mode (default)
+  return {
+    maxParts: 6,
+    tavilyPerPart: 1,
+    sonarPerPart: 1,
+    tavilyMaxResults: 20,
+    searchDepth: 'basic',
+    sonarModel: 'sonar',
+    openrouterCap: 6
+  };
+}
+
 const DEFAULT_OR_MODEL = 'mistralai/mistral-7b-instruct:free';
-const GEMINI_MODEL = 'google/gemini-2.5-flash';
+const GEMINI_MODEL = 'google/gemini-2.5-flash-lite';
 
 function pickType(q: any): 'factual'|'knowledge'|'reasoning' {
   const t = (q.type || '').toLowerCase();
@@ -38,10 +68,12 @@ function truncateForTavily(query: string): string {
 }
 
 async function generateClarifyingQuestions(input: ResearchInput, state: ResearchState): Promise<ClarifyingQuestion[]> {
+  const limits = getResearchLimits(input.deepMode ? 'deeper' : 'deep');
+  
   // Always generate fallback questions first to ensure we never return empty
   const fallbackQuestions = generateFallbackClarifyingQuestions(input.query);
   
-  if (state.openrouterCalls >= OPENROUTER_CAP) {
+  if (state.openrouterCalls >= limits.openrouterCap) {
     log('clarify> using fallback questions due to budget limit');
     return fallbackQuestions;
   }
@@ -239,7 +271,8 @@ function generateFallbackClarifyingQuestions(query: string): ClarifyingQuestion[
 
 // New enhanced pipeline functions
 async function expandQueries(macroTopics: string[], state: ResearchState): Promise<ExpandedQuery[]> {
-  if (state.openrouterCalls >= OPENROUTER_CAP) return [];
+  const limits = getResearchLimits(state.input.deepMode ? 'deeper' : 'deep');
+  if (state.openrouterCalls >= limits.openrouterCap) return [];
   
   log('expand> generating search queries for', macroTopics.length, 'topics');
   
@@ -279,8 +312,9 @@ async function expandQueries(macroTopics: string[], state: ResearchState): Promi
 
 async function gatherEvidenceEnhanced(expandedQueries: ExpandedQuery[], input: ResearchInput, state: ResearchState): Promise<Evidence[]> {
   const evidence: Evidence[] = [];
-  const tavilyCap = input.deepMode ? TAVILY_CAP_DEEP : TAVILY_CAP;
-  const maxResults = input.deepMode ? 12 : 7;
+  const limits = getResearchLimits(input.deepMode ? 'deeper' : 'deep');
+  const tavilyCap = limits.maxParts * limits.tavilyPerPart;
+  const maxResults = limits.tavilyMaxResults;
   
   log('gather-enhanced> processing', expandedQueries.length, 'query sets');
   
@@ -321,7 +355,8 @@ async function gatherEvidenceEnhanced(expandedQueries: ExpandedQuery[], input: R
 }
 
 async function clusterEvidence(evidence: Evidence[], state: ResearchState): Promise<EvidenceCluster[]> {
-  if (state.openrouterCalls >= OPENROUTER_CAP || evidence.length < 10) {
+  const limits = getResearchLimits(state.input.deepMode ? 'deeper' : 'deep');
+  if (state.openrouterCalls >= limits.openrouterCap || evidence.length < 10) {
     // Fallback clustering
     return [{
       theme: 'General Research',
@@ -379,7 +414,9 @@ async function clusterEvidence(evidence: Evidence[], state: ResearchState): Prom
 }
 
 async function runContrastAnalysis(clusters: EvidenceCluster[], state: ResearchState): Promise<string[]> {
-  if (state.pplxCalls >= (state.input.deepMode ? PPLX_CAP_DEEP : PPLX_CAP) || clusters.length < 2) {
+  const limits = getResearchLimits(state.input.deepMode ? 'deeper' : 'deep');
+  const maxSonarCalls = limits.maxParts * limits.sonarPerPart;
+  if (state.pplxCalls >= maxSonarCalls || clusters.length < 2) {
     log('contrast> skipping due to budget limits or insufficient clusters');
     return generateFallbackContrasts(clusters);
   }
@@ -471,7 +508,9 @@ function generateFallbackContrasts(clusters: EvidenceCluster[]): string[] {
 }
 
 async function runDeepResearchGlobal(clusters: EvidenceCluster[], input: ResearchInput, state: ResearchState): Promise<Report> {
-  if (state.pplxCalls >= (input.deepMode ? PPLX_CAP_DEEP : PPLX_CAP)) {
+  const limits = getResearchLimits(input.deepMode ? 'deeper' : 'deep');
+  const maxSonarCalls = limits.maxParts * limits.sonarPerPart;
+  if (state.pplxCalls >= maxSonarCalls) {
     return generateFallbackReport(input.query, clusters);
   }
   
@@ -504,7 +543,8 @@ Make this analysis substantial and detailed. Include specific data, statistics, 
     state.pplxCalls++;
     
     // Step 2: Use OpenRouter to structure the response into JSON
-    if (state.openrouterCalls < OPENROUTER_CAP) {
+    const limits = getResearchLimits(input.deepMode ? 'deeper' : 'deep');
+    if (state.openrouterCalls < limits.openrouterCap) {
       const structuredResult = await openrouterCall({
         model: input.deepMode ? GEMINI_MODEL : DEFAULT_OR_MODEL,
         messages: [
@@ -712,7 +752,8 @@ async function decompose(input: ResearchInput, state: ResearchState): Promise<Su
   // Generate fallback topics first
   const fallbackTopics = generateFallbackTopics(input.query);
   
-  if (state.openrouterCalls >= OPENROUTER_CAP) {
+  const limits = getResearchLimits(input.deepMode ? 'deeper' : 'deep');
+  if (state.openrouterCalls >= limits.openrouterCap) {
     log('decompose> using fallback topics due to budget limit');
     return fallbackTopics;
   }
@@ -915,14 +956,15 @@ function extractTechTopic(query: string): string {
 async function assignAndGather(input: ResearchInput, subqs: SubQuestion[], state: ResearchState) {
   const evidence: Evidence[] = [];
   
-  // Dynamic budgets based on deep mode
-  const pplxCap = input.deepMode ? PPLX_CAP_DEEP : PPLX_CAP;
-  const tavilyCap = input.deepMode ? TAVILY_CAP_DEEP : TAVILY_CAP;
-  const maxResults = input.deepMode ? 20 : 8;
-  const searchDepth = input.deepMode ? 'advanced' : 'basic';
+  // Dynamic budgets based on research mode
+  const limits = getResearchLimits(input.deepMode ? 'deeper' : 'deep');
+  const pplxCap = limits.maxParts * limits.sonarPerPart;
+  const tavilyCap = limits.maxParts * limits.tavilyPerPart;
+  const maxResults = limits.tavilyMaxResults;
+  const searchDepth = limits.searchDepth;
   
   log('gather> starting for', subqs.length, 'subqs (deep mode:', !!input.deepMode, ')');
-  log('gather> budgets - pplx:', pplxCap, 'tavily:', tavilyCap, 'maxResults:', maxResults);
+  log('gather> budgets - pplx:', pplxCap, 'tavily:', tavilyCap, 'maxResults:', maxResults, 'depth:', searchDepth);
 
   // Enhanced routing: factual -> Tavily (advanced in deep mode); knowledge -> Deep-Research; reasoning -> Reasoning
   const tasks = subqs.map(async (sq) => {
@@ -954,14 +996,14 @@ async function assignAndGather(input: ResearchInput, subqs: SubQuestion[], state
       }
       state.pplxCalls++;
       
-                // Use appropriate Sonar models - no expensive deep research
-          let mode: 'pro' | 'reasoning';
+                // Use dynamic mode selection based on research configuration
+          let mode: 'pro' | 'reasoning' | 'default';
           if (sq.type === 'reasoning') {
             mode = 'reasoning';
           } else {
-            mode = 'pro';
+            mode = limits.sonarModel === 'sonar-pro' ? 'pro' : 'default';
           }
-      log('gather> perplexity call for', sq.id, 'mode:', mode);
+      log('gather> perplexity call for', sq.id, 'mode:', mode, 'model:', limits.sonarModel);
       try {
         const a = await perplexityAsk({ prompt: sq.question, mode });
         log('gather> perplexity returned', a.citations?.length || 0, 'citations for', sq.id);
@@ -975,9 +1017,9 @@ async function assignAndGather(input: ResearchInput, subqs: SubQuestion[], state
           try {
             const res = await tavilySearch({
               query: truncateForTavily(sq.question),
-              maxResults,
+              maxResults: limits.tavilyMaxResults,
               timeRange: 'year',
-              searchDepth
+              searchDepth: limits.searchDepth
             });
             log('gather> tavily follow-up returned', res.items.length, 'items');
             
@@ -1034,9 +1076,10 @@ function findContradictions(evd: Evidence[]): Array<{ topic: string; urls: strin
 }
 
 async function gapFill(input: ResearchInput, state: ResearchState, conflictTopic: string) {
-  // Dynamic budgets based on deep mode
-  const pplxCap = input.deepMode ? PPLX_CAP_DEEP : PPLX_CAP;
-  const tavilyCap = input.deepMode ? TAVILY_CAP_DEEP : TAVILY_CAP;
+  // Dynamic budgets based on research mode
+  const limits = getResearchLimits(input.deepMode ? 'deeper' : 'deep');
+  const pplxCap = limits.maxParts * limits.sonarPerPart;
+  const tavilyCap = limits.maxParts * limits.tavilyPerPart;
   
   if (state.pplxCalls >= pplxCap && state.tavilyCalls >= tavilyCap) return [] as Evidence[];
 
@@ -1125,7 +1168,7 @@ async function extractDetailedContent(themes: string[], input: ResearchInput): P
       // Get 2-3 sources with full content for this theme (OPTIMIZED)
       const searchResult = await tavilySearchCached({
         query: `${theme} ${input.query}`.substring(0, 350), // Keep under Tavily limit
-        maxResults: 12, // Reduced from 6 to 3
+        maxResults: 20, // Reduced from 6 to 3
         searchDepth: 'advanced', // Changed from advanced to basic for efficiency
         includeRawContent: true
       });
@@ -1222,7 +1265,9 @@ async function runParallelFocusedResearch(contentExtracts: Array<{theme: string,
     const batch = contentExtracts.slice(i, i + maxConcurrent);
     
     const batchPromises = batch.map(async (extract) => {
-      if (state.pplxCalls >= (input.deepMode ? PPLX_CAP_DEEP : PPLX_CAP)) {
+      const limits = getResearchLimits(input.deepMode ? 'deeper' : 'deep');
+      const maxSonarCalls = limits.maxParts * limits.sonarPerPart;
+      if (state.pplxCalls >= maxSonarCalls) {
         log('parallel> perplexity budget exhausted for theme:', extract.theme.substring(0, 30) + '...');
         return {
           theme: extract.theme,
@@ -1432,6 +1477,7 @@ ${Array.from(new Set(analyses.flatMap(a => a.sources))).map((url, i) => `${i + 1
 export async function runDeepResearch(input: ResearchInput): Promise<{ report: Report; markdown: string; meta: any; clarifyingQuestions?: ClarifyingQuestion[] }> {
   const startTime = Date.now();
   log('research> starting CONTENT-FIRST research, mode:', input.deepMode ? 'DEEP' : 'NORMAL');
+  log('research> skipClarify flag:', !!input.skipClarify);
   
   // Always clear cache for fresh results and prevent cache bloat
   clearCache();
@@ -1445,7 +1491,7 @@ export async function runDeepResearch(input: ResearchInput): Promise<{ report: R
   const state: ResearchState = {
     input,
     clarifyingQuestions: [],
-    refinedQuery: input.query,
+    refinedQuery: input.query, // This will be the refined query from user answers
     subqs: [],
     evidence: [],
     contradictions: [],
@@ -1454,51 +1500,70 @@ export async function runDeepResearch(input: ResearchInput): Promise<{ report: R
     tavilyCalls: 0,
     openrouterCalls: 0
   };
+  
+  log('research> initialized state with query length:', input.query.length);
 
-  // 0) Generate clarifying questions (if interactive mode)
-  if (input.interactive !== false) {
+  // 0) Generate clarifying questions only if not skipped
+  if (!input.skipClarify) {
+    log('research> generating clarifying questions...');
     state.clarifyingQuestions = await generateClarifyingQuestions(input, state);
     
     // If clarifying questions were generated, return them for user input
     if (state.clarifyingQuestions.length > 0) {
+      log('research> returning', state.clarifyingQuestions.length, 'clarifying questions to user');
       return {
         report: {
-          query: input.query,
-          executive_summary: '',
-          key_findings: [],
-          sections: [],
-          limitations: []
-        },
-        markdown: '',
-        meta: {
-          pplxCalls: state.pplxCalls,
-          pplxDeepCalls: state.pplxDeepCalls,
-          tavilyCalls: state.tavilyCalls,
-          openrouterCalls: state.openrouterCalls,
-          subqCount: 0,
-          evidenceCount: 0,
-          clarifyingQuestionsGenerated: true
-        },
-        clarifyingQuestions: state.clarifyingQuestions
-      };
+            query: input.query,
+            executive_summary: '',
+            key_findings: [],
+            sections: [],
+            limitations: []
+          },
+          markdown: '',
+          meta: {
+            pplxCalls: state.pplxCalls,
+            pplxDeepCalls: state.pplxDeepCalls,
+            tavilyCalls: state.tavilyCalls,
+            openrouterCalls: state.openrouterCalls,
+            subqCount: 0,
+            evidenceCount: 0,
+            clarifyingQuestionsGenerated: true
+          },
+          clarifyingQuestions: state.clarifyingQuestions
+        };
+    } else {
+      log('research> no clarifying questions generated, proceeding with research');
     }
+  } else {
+    log('research> skipping clarifying questions, proceeding directly to research');
   }
 
+  // Now proceed with actual research
   // NEW CONTENT-FIRST PIPELINE
   
   // 1) Decompose into research themes (instead of sub-questions)
+  log('research> STEP 1: Decomposing query into research themes...');
   const macroTopics = await decompose({ ...input, query: state.refinedQuery }, state);
   const themes = macroTopics.map(sq => sq.question);
   state.subqs = macroTopics; // Keep for compatibility
-  log('research> identified', themes.length, 'research themes');
+  log('research> ✅ STEP 1 COMPLETE: Identified', themes.length, 'research themes');
+  themes.forEach((theme, i) => log(`research>   Theme ${i+1}: ${theme.substring(0, 80)}...`));
   
   // 2) NEW - Extract detailed content from sources for each theme
+  log('research> STEP 2: Extracting detailed content from sources...');
   const contentExtracts = await extractDetailedContent(themes, input);
-  log('research> extracted content for', contentExtracts.length, 'themes');
+  log('research> ✅ STEP 2 COMPLETE: Extracted content for', contentExtracts.length, 'themes');
+  contentExtracts.forEach((extract, i) => {
+    log(`research>   Extract ${i+1}: ${extract.theme.substring(0, 60)}... (${extract.sources.length} sources)`);
+  });
   
   // 3) NEW - Run parallel focused research with rich content
+  log('research> STEP 3: Running parallel focused research...');
   const focusedAnalyses = await runParallelFocusedResearch(contentExtracts, input, state);
-  log('research> completed focused research on', focusedAnalyses.length, 'themes');
+  log('research> ✅ STEP 3 COMPLETE: Completed focused research on', focusedAnalyses.length, 'themes');
+  focusedAnalyses.forEach((analysis, i) => {
+    log(`research>   Analysis ${i+1}: ${analysis.theme.substring(0, 60)}... (${analysis.sources.length} sources)`);
+  });
   
   // Runtime check
   if (Date.now() - startTime > RUNTIME_CAP_MS) {
@@ -1506,8 +1571,11 @@ export async function runDeepResearch(input: ResearchInput): Promise<{ report: R
   }
   
   // 4) NEW - Synthesize into comprehensive narrative report
+  log('research> STEP 4: Synthesizing comprehensive narrative report...');
   const { markdown, allSources } = await synthesizeNarrativeReport(focusedAnalyses, input);
-  log('research> synthesized final report:', markdown.length, 'characters');
+  log('research> ✅ STEP 4 COMPLETE: Synthesized final report');
+  log('research>   Report length:', markdown.length, 'characters');
+  log('research>   Total sources:', allSources.length);
   
   // Create a basic report object for compatibility
   const fallbackReport: Report = {
@@ -1530,6 +1598,16 @@ export async function runDeepResearch(input: ResearchInput): Promise<{ report: R
     ]
   };
 
+  log('research> 🎉 RESEARCH COMPLETE! Final stats:');
+  log('research>   - Perplexity calls:', state.pplxCalls);
+  log('research>   - Tavily calls:', state.tavilyCalls);
+  log('research>   - OpenRouter calls:', state.openrouterCalls);
+  log('research>   - Research themes:', themes.length);
+  log('research>   - Content extracts:', contentExtracts.length);
+  log('research>   - Focused analyses:', focusedAnalyses.length);
+  log('research>   - Total sources:', allSources.length);
+  log('research>   - Runtime:', Math.round((Date.now() - startTime) / 1000), 'seconds');
+
   return {
     report: fallbackReport,
     markdown,
@@ -1543,51 +1621,76 @@ export async function runDeepResearch(input: ResearchInput): Promise<{ report: R
       evidenceClusters: focusedAnalyses.length,
       deepDiveGenerated: true,
       totalSources: allSources.length,
-      contentFirstApproach: true
+      contentFirstApproach: true,
+      runtimeSeconds: Math.round((Date.now() - startTime) / 1000)
     }
   };
 }
 
 function buildEnhancedMarkdown(report: Report, allSourceUrls: string[], deepDive?: DeepDiveSection | null): string {
-  const cite = (c: Evidence) => `[[source]](${c.url})`;
+  // Create a comprehensive citation map for numbered references
+  const allCitations = report.sections.flatMap(s => s.citations)
+    .concat(report.key_findings.flatMap(f => f.citations || []))
+    .filter((c, i, arr) => arr.findIndex(x => x.url === c.url) === i);
   
-  // Build sections with enhanced formatting and better spacing
+  const cite = (c: Evidence) => {
+    const index = allCitations.findIndex(citation => citation.url === c.url);
+    return index !== -1 ? `[${index + 1}]` : `[?]`;
+  };
+  
+  // Build sections with inline citations throughout content
   const sectionMd = report.sections.map((s, index) => {
     const sectionNumber = index + 1;
+    // Add inline citations to content if not already present
+    let contentWithCitations = s.content;
+    if (s.citations.length > 0 && !contentWithCitations.includes('[')) {
+      // Simple heuristic: add citations after periods/sentences
+      const sentences = contentWithCitations.split(/(\. )/);
+      const citationChunks = Math.max(1, Math.floor(sentences.length / s.citations.length));
+      
+      for (let i = 0; i < sentences.length; i += citationChunks * 2) {
+        const citationIndex = Math.floor(i / (citationChunks * 2));
+        if (citationIndex < s.citations.length && sentences[i] && sentences[i].includes('.')) {
+          sentences[i] += ` ${cite(s.citations[citationIndex])}`;
+        }
+      }
+      contentWithCitations = sentences.join('');
+    }
+    
     return `## ${sectionNumber}. ${s.heading}
 
-${s.content}
-
-**Sources:** ${s.citations.map(cite).join(' ')}
+${contentWithCitations}
 
 ---
 
 `;
   }).join('\n');
 
-  // Build findings with enhanced formatting
+  // Build findings with inline citations
   const findings = report.key_findings.map((k, index) => {
     const findingNumber = index + 1;
-    return `### Finding ${findingNumber}: ${k.claim}
+    let claimWithCitations = k.claim;
+    
+    // Add inline citations to findings if not already present
+    if (k.citations && k.citations.length > 0 && !claimWithCitations.includes('[')) {
+      claimWithCitations += ` ${k.citations.map(cite).join('')}`;
+    }
+    
+    return `### Finding ${findingNumber}: ${claimWithCitations}
 
 **Confidence Level:** ${k.confidence.toUpperCase()}
-
-**Supporting Evidence:** ${k.citations.map(cite).join(' ')}
 
 `;
   }).join('\n');
 
-  // Build comprehensive appendix with better organization
-  const primarySources = report.sections.flatMap(s => s.citations)
-    .concat(report.key_findings.flatMap(f => f.citations || []))
-    .filter((c, i, arr) => arr.findIndex(x => x.url === c.url) === i);
+  // Build comprehensive numbered reference system
+  const numberedReferences = allCitations
+    .map((c, i) => `[${i + 1}] ${c.title || 'Research Source'} - ${c.url}`)
+    .join('\n');
     
-  const appendixA = primarySources
-    .map((c, i) => `${i + 1}. **${c.title || 'Research Source'}**  
-   ${c.url}`)
-    .join('\n\n');
-
-  const appendixB = allSourceUrls
+  // Ensure all discovered URLs are included in complete bibliography
+  const uniqueAllUrls = [...new Set(allSourceUrls)];
+  const appendixB = uniqueAllUrls
     .map((url, i) => `${i + 1}. ${url}`)
     .join('\n');
 
@@ -1635,13 +1738,13 @@ ${report.limitations.map((l, i) => `${i + 1}. ${l}`).join('\n')}
 
 ---
 
-## Appendix A: Primary Sources Referenced (${primarySources.length} sources)
+## References
 
-${appendixA}
+${numberedReferences}
 
 ---
 
-## Appendix B: Complete Source Bibliography (${allSourceUrls.length} total sources)
+## Complete Source Bibliography (${uniqueAllUrls.length} total sources searched)
 
 ${appendixB}
 

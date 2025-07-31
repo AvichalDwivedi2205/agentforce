@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "setup": "tsx setup.ts",
-    "start": "tsx index.ts",
-    "dev": "tsx watch index.ts"
+    "setup": "npx tsx setup.ts",
+    "start": "npx tsx index.ts",
+    "dev": "npx tsx watch index.ts"
   },
   "dependencies": {
     "axios": "^1.7.2",

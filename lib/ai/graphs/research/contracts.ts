@@ -40,14 +40,12 @@ export type Report = {
 
 export type ResearchInput = {
   query: string;
-  from?: string; // ISO
-  to?: string;   // ISO
-  interactive?: boolean; // Whether to ask clarifying questions
-  deepMode?: boolean; // Enable Gemini models and larger budgets
-  clarifyModel?: 'gemini' | 'mistral'; // Override clarify model
-  extraDeep?: boolean; // Force second deep-research call
-  noExtraDeep?: boolean; // Disable auto second deep-research call
-  clearCache?: boolean; // Clear cache before run
+  from?: string; // ISO date range start
+  to?: string;   // ISO date range end
+  deepMode?: boolean; // Enable deeper research with sonar-pro models and advanced search
+  clarifyModel?: 'gemini' | 'mistral'; // Override clarify model (default: mistral)
+  clearCache?: boolean; // Clear cache before research starts
+  skipClarify?: boolean; // Skip clarifying questions (internal flag)
 };
 
 export type ExpandedQuery = {
@@ -125,22 +123,26 @@ export function withinWindow(pub?: string, from?: string, to?: string) {
 export const PROMPT_CLARIFY = (q: string) => `
 You are a research assistant. The user has asked: "${q}"
 
-To provide the best research, generate 3-5 clarifying questions that would help narrow down the scope and improve the research quality.
+Generate exactly 2 comprehensive clarifying questions that would help narrow down the scope and dramatically improve the research quality.
 
-For each question, provide:
-- The clarifying question
-- Why this question is important (purpose)
-- 2-3 suggested answer options (if applicable)
-
-Return JSON array with objects: { "question": "...", "purpose": "...", "suggested_answers": ["option1", "option2", "option3"] }
-
-Focus on:
+Think broadly about what you need to know to create the most valuable possible research report:
 - Time scope (when/what period?)
 - Geographic scope (where/which regions?)
 - Industry/sector specifics
 - Stakeholder perspective (who is affected?)
 - Specific aspects of interest
 - Scale/magnitude (how big/small?)
+- Analysis type needed (quantitative vs qualitative, current vs historical)
+- What decisions or outcomes will this research inform?
+- Level of technical depth appropriate
+- Any specific constraints or priorities
+
+For each question, provide:
+- The clarifying question (conversational and clear)
+- Why this question is important (purpose)
+- 3-4 practical suggested answer options
+
+Return JSON array with exactly 2 objects: { "question": "...", "purpose": "...", "suggested_answers": ["option1", "option2", "option3", "option4"] }
 
 User question: ${q}
 `;
@@ -148,22 +150,26 @@ User question: ${q}
 export const PROMPT_CLARIFY_GEMINI = (q: string) => `
 You are a research strategist helping to design the perfect research approach. The user wants to research: "${q}"
 
-Your task is to ask 2-3 thoughtful questions that will help create a much better, more focused research report. Think creatively about what would make this research most valuable.
+Generate exactly 2 thoughtful questions that will help create a much better, more focused research report. Think creatively about what would make this research most valuable.
 
 Consider asking about:
 - What specific aspects matter most to them
-- What type of analysis would be most useful
+- What type of analysis would be most useful (quantitative vs qualitative, current vs historical)
 - What perspective or angle would be most insightful
 - What scope or focus would provide the best value
+- What decisions or outcomes will this research inform
+- Level of technical depth appropriate
+- Time frames, geographic regions, or specific demographics of interest
+- Constraints, priorities, or success criteria
 
-Feel free to ask whatever you think would genuinely improve the research - don't be limited by templates.
+Feel free to ask whatever you think would genuinely improve the research - don't be limited by templates. Ask everything relevant NOW.
 
 For each question, provide:
 - The question itself (make it conversational and clear)
 - A brief explanation of why this helps
 - 3-4 practical answer options
 
-Return a JSON array: [{"question": "...", "purpose": "...", "suggested_answers": ["...", "...", "..."]}]
+Return a JSON array with exactly 2 questions: [{"question": "...", "purpose": "...", "suggested_answers": ["...", "...", "...", "..."]}]
 
 Research topic: ${q}
 `;
@@ -275,18 +281,26 @@ Cluster 2: ${JSON.stringify(cluster2, null, 2)}
 `;
 
 export const PROMPT_DECOMPOSE = (q: string) => `
-Break down this research topic into exactly 3 distinct, focused themes for comprehensive analysis.
+Analyze this research topic and break it down into 3-6 distinct, focused themes for comprehensive analysis.
+
+ADAPTIVE COMPLEXITY GUIDELINES:
+- Simple/straightforward topics → 3 themes
+- Moderately complex topics → 4-5 themes  
+- Highly complex/multi-faceted topics → 6 themes
 
 Each theme should cover a different major aspect of the topic. Make them specific and actionable for research.
 
-Return exactly 3 themes as a JSON array:
+Think about the natural complexity and scope of this topic, then choose the optimal number of themes (3-6) that will provide comprehensive coverage without unnecessary overlap.
+
+Return your themes as a JSON array:
 [
   {"question": "Theme 1: [Specific aspect]", "type": "knowledge", "rationale": "Why this theme matters"},
   {"question": "Theme 2: [Different aspect]", "type": "knowledge", "rationale": "Why this theme matters"}, 
   {"question": "Theme 3: [Third major aspect]", "type": "knowledge", "rationale": "Why this theme matters"}
+  // Add 4-6 themes if the topic complexity warrants it
 ]
 
-Focus on themes that will provide comprehensive coverage without overlap.
+Focus on themes that will provide comprehensive coverage without overlap. Choose the number of themes based on what the topic actually needs, not a fixed count.
 
 User question: ${q}
 `;
@@ -299,10 +313,12 @@ User question: ${q}
 `;
 
 export const PROMPT_SYNTH = (q: string) => `
-You are writing a concise research brief. 
+You are writing a comprehensive research report with inline citations. 
 Rules:
 - Use ONLY the provided Evidence list (URLs/titles/snippets/dates) as sources.
-- Every numeric or dated claim must cite at least one provided URL.
+- Include inline citations throughout the content using [1], [2], [3] format
+- Every claim, statistic, or data point must have an inline citation
+- Create numbered reference list linking citations to URLs
 - If something is uncertain or conflicting, include it under "limitations".
 
 Return a JSON object with:

@@ -56,7 +56,7 @@ export async function tavilySearch(params: {
 }
 
 // --- Perplexity -----------------------------------------------------------
-type PplxMode = 'pro' | 'reasoning' | 'deep-research';
+type PplxMode = 'pro' | 'reasoning' | 'deep-research' | 'default';
 export async function perplexityAsk(params: {
   prompt: string;
   mode?: PplxMode;      // 'pro' default
@@ -80,8 +80,9 @@ export async function perplexityAsk(params: {
       systemPrompt = 'You are a deep research assistant. Conduct thorough analysis with multiple sources. Provide comprehensive insights with detailed citations. Be thorough and analytical. Research deeply and provide nuanced understanding.';
       timeout = 600000; // 4 minutes for deep research as it takes 2-4 minutes per ZDNET
       break;
+    case 'default':
     default:
-      model = 'sonar-pro';
+      model = 'sonar';
       systemPrompt = 'Be concise. Cite sources when possible.';
       timeout = 60000;
   }
