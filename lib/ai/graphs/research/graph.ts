@@ -2,8 +2,8 @@ import { openrouterCall, perplexityAsk, tavilySearch } from '../../clients.js';
 import {
   ResearchInput, ResearchState, SubQuestion, Evidence, Report, ClarifyingQuestion,
   EvidenceCluster, ExpandedQuery, DeepDiveSection,
-  PROMPT_DECOMPOSE, PROMPT_GAPFILL, PROMPT_SYNTH, PROMPT_CLARIFY, PROMPT_CLARIFY_GEMINI,
-  PROMPT_QUERY_EXPAND, PROMPT_CLUSTER_EVIDENCE, PROMPT_DEEP_GLOBAL, PROMPT_DEEP_FOCUSED, PROMPT_CONTRAST_ANALYSIS,
+  PROMPT_DECOMPOSE, PROMPT_GAPFILL, PROMPT_CLARIFY, PROMPT_CLARIFY_GEMINI,
+  PROMPT_QUERY_EXPAND, PROMPT_CLUSTER_EVIDENCE, PROMPT_DEEP_FOCUSED,
   dedupeEvidence, withinWindow
 } from './contracts.js';
 
