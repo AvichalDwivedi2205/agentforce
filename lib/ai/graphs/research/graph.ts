@@ -1157,7 +1157,7 @@ ${report.limitations.map(l => `- ${l}`).join('\n')}
 }
 
 // NEW: Content Extraction Phase
-async function extractDetailedContent(themes: string[], input: ResearchInput): Promise<Array<{theme: string, content: string, sources: string[]}>> {
+async function extractDetailedContent(themes: string[], input: ResearchInput, state: ResearchState): Promise<Array<{theme: string, content: string, sources: string[]}>> {
   const log = (...args: any[]) => console.log('[research]', ...args);
   log('extract> extracting detailed content for', themes.length, 'themes');
   
@@ -1190,11 +1190,12 @@ async function extractDetailedContent(themes: string[], input: ResearchInput): P
         continue;
       }
       
-      // Extract insights from each source using OpenRouter
+      // Extract insights from each source using OpenRouter with citation tracking
       const insights: string[] = [];
       const sourceUrls: string[] = [];
+      let globalCitationCounter = state.globalCitationCounter || 1;
       
-      for (const source of richSources) {
+      for (const [sourceIndex, source] of richSources.entries()) {
         try {
           // Use free model for extraction to minimize costs
           const extractResult = await openrouterCall({
@@ -1202,30 +1203,44 @@ async function extractDetailedContent(themes: string[], input: ResearchInput): P
             messages: [
               {
                 role: 'system',
-                content: `Extract key insights about "${theme}" from the source. Focus on specific data, examples, and trends. Write 2-3 paragraphs with the most important information.`
+                content: `Extract key insights about "${theme}" from the source with mandatory inline citations.
+
+CRITICAL CITATION REQUIREMENTS:
+- Every factual claim, statistic, or data point MUST have an inline citation immediately after it
+- Use format: "Statement with fact [${globalCitationCounter + sourceIndex}]."
+- This source should be cited as [${globalCitationCounter + sourceIndex}]
+- Focus on specific data, examples, and trends with citations
+- Write 2-3 paragraphs with the citation [${globalCitationCounter + sourceIndex}] throughout
+
+EXAMPLE: "The adoption rate increased by 45% in Q3 2024 [${globalCitationCounter + sourceIndex}]. Market analysis shows significant growth [${globalCitationCounter + sourceIndex}]."`
               },
               {
                 role: 'user',
                 content: `Theme: ${theme}
 Source: ${source.title}
+URL: ${source.url}
+Citation Number: [${globalCitationCounter + sourceIndex}]
 Content: ${source.raw_content?.substring(0, 3000) || source.snippet || 'No content available'}
 
-Extract key insights:`
+Extract key insights with inline citations [${globalCitationCounter + sourceIndex}] throughout the text:`
               }
             ],
             temperature: 0.2
           });
           
           insights.push(extractResult.text || 'No insights extracted');
-          sourceUrls.push(source.url || 'Unknown source');
+          sourceUrls.push(`[${globalCitationCounter + sourceIndex}] ${source.title || 'Research Source'} - ${source.url || 'Unknown source'}`);
           
         } catch (error) {
           log('extract> failed to extract from source:', error);
           // Fallback to snippet
-          insights.push(`${source.title}: ${source.snippet || 'No content available'}`);
-          sourceUrls.push(source.url);
+          insights.push(`${source.title}: ${source.snippet || 'No content available'} [${globalCitationCounter + sourceIndex}]`);
+          sourceUrls.push(`[${globalCitationCounter + sourceIndex}] ${source.title || 'Research Source'} - ${source.url}`);
         }
       }
+      
+      // Update global citation counter for next theme
+      state.globalCitationCounter = globalCitationCounter + richSources.length;
       
       // Combine insights for this theme
       const combinedContent = insights.join('\n\n---\n\n');
@@ -1284,25 +1299,31 @@ async function runParallelFocusedResearch(contentExtracts: Array<{theme: string,
         const result = await perplexityAsk({
           prompt: `Conduct comprehensive research analysis on: ${extract.theme}
 
+CRITICAL CITATION REQUIREMENTS:
+- Every factual claim, statistic, quote, or data point MUST have an inline citation immediately after it
+- Use format: "Statement with fact [X]." or "Multiple claims [X][Y]."
+- Number your citations sequentially starting from ${state.globalCitationCounter || 1}
+- Include citations from both the extracted content AND your additional research
+
 Context: This is part of a broader research on "${input.query}"
 
-I have extracted detailed content from multiple sources about this theme. Please analyze this content and provide additional insights to create a comprehensive understanding.
-
-Extracted Content:
+Pre-Cited Extracted Content (already has citations):
 ${extract.content}
 
-Please provide a thorough analysis covering:
-1. **Current State & Key Developments**: What's happening now? Include specific examples, statistics, and recent developments.
+Please provide a thorough analysis with inline citations covering:
+1. **Current State & Key Developments**: What's happening now? Include specific examples [cite sources], statistics [cite sources], and recent developments [cite sources].
 
-2. **Impact Analysis**: What are the real-world effects and implications? Include both positive and negative impacts with concrete examples.
+2. **Impact Analysis**: What are the real-world effects [cite sources] and implications? Include both positive and negative impacts with concrete examples [cite sources].
 
-3. **Expert Perspectives**: What do researchers, practitioners, and stakeholders think? Include different viewpoints and debates.
+3. **Expert Perspectives**: What do researchers [cite sources], practitioners [cite sources], and stakeholders think? Include different viewpoints and debates [cite sources].
 
-4. **Future Outlook**: Where is this heading? Include trends, predictions, and emerging developments.
+4. **Future Outlook**: Where is this heading [cite sources]? Include trends, predictions [cite sources], and emerging developments [cite sources].
 
-5. **Challenges & Opportunities**: What are the main obstacles and potential benefits?
+5. **Challenges & Opportunities**: What are the main obstacles [cite sources] and potential benefits [cite sources]?
 
-Make this analysis substantial and detailed with specific data, examples, and insights. This should be a comprehensive examination of this theme, not a brief overview.`,
+EXAMPLE CITATION STYLE: "Recent analysis shows 78% adoption rate [${state.globalCitationCounter || 1}]. Industry leaders report 45% efficiency gains [${(state.globalCitationCounter || 1) + 1}][${(state.globalCitationCounter || 1) + 2}]. Market projections indicate continued growth through 2025 [${(state.globalCitationCounter || 1) + 3}]."
+
+Make this analysis substantial with inline citations after every claim, statistic, and data point.`,
           mode: 'pro'
         });
         
@@ -1356,29 +1377,36 @@ async function synthesizeNarrativeReport(analyses: Array<{theme: string, analysi
       messages: [
         {
           role: 'system',
-          content: `Create a comprehensive research report synthesizing the analyses below.
+          content: `Create a comprehensive research report synthesizing the pre-cited analyses below.
+
+CRITICAL: The analyses below already contain inline citations [1][2][3]. 
+- PRESERVE all existing citations exactly as they appear
+- DO NOT remove or modify any [1][2][3] citations  
+- When combining content, maintain citation integrity
+- Add section headings and structure while keeping all citations
+- Every claim should have its citation preserved from the source material
 
 Structure:
 # Comprehensive Research Report
 **Research Query:** [query]
 
 ## Executive Summary
-[400-500 word summary]
+[400-500 word summary with preserved citations [1][2][3]]
 
 ## Key Research Findings
 ### Finding 1: [Title]
-[Detailed explanation]
-[Continue with 10+ findings]
+[Detailed explanation with preserved citations [1][2][3]]
+[Continue with 10+ findings with citations]
 
-## Detailed Analysis
+## Detailed Analysis  
 ### [Section Title]
-[500-700 words analysis]
+[500-700 words analysis with preserved citations [1][2][3]]
 [Continue with 3+ sections]
 
 ## Research Limitations
 [List limitations]
 
-Make it substantial with specific examples and data. Use professional tone.`
+PRESERVE ALL CITATIONS [1][2][3] from the source analyses. Never remove citations. Make it substantial with specific examples and data.`
         },
         {
           role: 'user',
@@ -1400,27 +1428,49 @@ Create a comprehensive research report that synthesizes all these analyses into 
     
     const reportContent = synthesisResult.text || 'Comprehensive research analysis not available';
     
-    // Enhance with source appendices
-    const primarySources = allSources.slice(0, 20); // Top 20 primary sources
+    // Extract citation numbers and build reference list
+    const citationPattern = /\[(\d+)\]/g;
+    const citationsFound = new Set<string>();
+    let match;
+
+    // Scan report content and all analyses for citations
+    const contentToScan = reportContent + analyses.map(a => a.analysis).join(' ');
+    while ((match = citationPattern.exec(contentToScan)) !== null) {
+      citationsFound.add(match[1]);
+    }
+
+    // Build citation reference list
+    const citationReferences = Array.from(citationsFound)
+      .sort((a, b) => parseInt(a) - parseInt(b))
+      .map(num => {
+        // Find corresponding source info for this citation number
+        const sourceInfo = allSources.find(s => s.includes(`[${num}]`));
+        if (sourceInfo) {
+          return sourceInfo; // Already formatted as "[1] Title - URL"
+        }
+        return `[${num}] Research Source ${num}`;
+      }).join('\n\n');
+
+    // Clean URLs for complete bibliography (remove citation numbers)
+    const cleanUrls = allSources.map(s => s.replace(/^\[\d+\]\s*/, ''));
     
     const fullMarkdown = `${reportContent}
 
 ---
 
-## Appendix A: Primary Sources Referenced (${primarySources.length} sources)
+## References
 
-${primarySources.map((url, i) => `${i + 1}. **Research Source**  
-   ${url}`).join('\n\n')}
-
----
-
-## Appendix B: Complete Source Bibliography (${allSources.length} total sources)
-
-${allSources.map((url, i) => `${i + 1}. ${url}`).join('\n')}
+${citationReferences}
 
 ---
 
-**Research Methodology:** This comprehensive report was generated through systematic analysis of ${allSources.length} sources across ${analyses.length} thematic areas, using advanced AI-powered research techniques with human oversight for quality assurance.
+## Complete Source Bibliography (${cleanUrls.length} total sources)
+
+${cleanUrls.map((url, i) => `${i + 1}. ${url}`).join('\n')}
+
+---
+
+**Research Methodology:** This comprehensive report was generated through systematic analysis of ${cleanUrls.length} sources across ${analyses.length} thematic areas, using advanced AI-powered research techniques with human oversight for quality assurance.
 
 **Completion Date:** ${new Date().toLocaleDateString()}
 `;
@@ -1498,7 +1548,8 @@ export async function runDeepResearch(input: ResearchInput): Promise<{ report: R
     pplxCalls: 0,
     pplxDeepCalls: 0,
     tavilyCalls: 0,
-    openrouterCalls: 0
+    openrouterCalls: 0,
+    globalCitationCounter: 1
   };
   
   log('research> initialized state with query length:', input.query.length);
@@ -1551,7 +1602,7 @@ export async function runDeepResearch(input: ResearchInput): Promise<{ report: R
   
   // 2) NEW - Extract detailed content from sources for each theme
   log('research> STEP 2: Extracting detailed content from sources...');
-  const contentExtracts = await extractDetailedContent(themes, input);
+  const contentExtracts = await extractDetailedContent(themes, input, state);
   log('research> ✅ STEP 2 COMPLETE: Extracted content for', contentExtracts.length, 'themes');
   contentExtracts.forEach((extract, i) => {
     log(`research>   Extract ${i+1}: ${extract.theme.substring(0, 60)}... (${extract.sources.length} sources)`);
@@ -1633,64 +1684,42 @@ function buildEnhancedMarkdown(report: Report, allSourceUrls: string[], deepDive
     .concat(report.key_findings.flatMap(f => f.citations || []))
     .filter((c, i, arr) => arr.findIndex(x => x.url === c.url) === i);
   
-  const cite = (c: Evidence) => {
-    const index = allCitations.findIndex(citation => citation.url === c.url);
-    return index !== -1 ? `[${index + 1}]` : `[?]`;
-  };
-  
-  // Build sections with inline citations throughout content
+  // Build sections - content should already have inline citations from LLM
   const sectionMd = report.sections.map((s, index) => {
     const sectionNumber = index + 1;
-    // Add inline citations to content if not already present
-    let contentWithCitations = s.content;
-    if (s.citations.length > 0 && !contentWithCitations.includes('[')) {
-      // Simple heuristic: add citations after periods/sentences
-      const sentences = contentWithCitations.split(/(\. )/);
-      const citationChunks = Math.max(1, Math.floor(sentences.length / s.citations.length));
-      
-      for (let i = 0; i < sentences.length; i += citationChunks * 2) {
-        const citationIndex = Math.floor(i / (citationChunks * 2));
-        if (citationIndex < s.citations.length && sentences[i] && sentences[i].includes('.')) {
-          sentences[i] += ` ${cite(s.citations[citationIndex])}`;
-        }
-      }
-      contentWithCitations = sentences.join('');
-    }
     
-    return `## ${sectionNumber}. ${s.heading}
+    return `### ${s.heading}
 
-${contentWithCitations}
-
----
+${s.content}
 
 `;
   }).join('\n');
 
-  // Build findings with inline citations
+  // Build findings - claims should already have inline citations from LLM
   const findings = report.key_findings.map((k, index) => {
     const findingNumber = index + 1;
-    let claimWithCitations = k.claim;
     
-    // Add inline citations to findings if not already present
-    if (k.citations && k.citations.length > 0 && !claimWithCitations.includes('[')) {
-      claimWithCitations += ` ${k.citations.map(cite).join('')}`;
-    }
-    
-    return `### Finding ${findingNumber}: ${claimWithCitations}
+    return `### Finding ${findingNumber}: ${k.claim}
+${k.citations && k.citations.length > 0 ? k.citations.map(c => c.snippet).join(' ') : ''}
 
 **Confidence Level:** ${k.confidence.toUpperCase()}
 
 `;
   }).join('\n');
 
-  // Build comprehensive numbered reference system
+  // Build comprehensive numbered reference system with titles and descriptions
   const numberedReferences = allCitations
-    .map((c, i) => `[${i + 1}] ${c.title || 'Research Source'} - ${c.url}`)
-    .join('\n');
+    .map((c, i) => {
+      const title = c.title || 'Research Source';
+      const description = c.snippet ? ` - ${c.snippet.substring(0, 100)}...` : '';
+      return `${i + 1}. **${title}**${description}  
+   ${c.url}`;
+    })
+    .join('\n\n');
     
   // Ensure all discovered URLs are included in complete bibliography
   const uniqueAllUrls = [...new Set(allSourceUrls)];
-  const appendixB = uniqueAllUrls
+  const completeSourceList = uniqueAllUrls
     .map((url, i) => `${i + 1}. ${url}`)
     .join('\n');
 
@@ -1711,26 +1740,33 @@ ${deepDive.findings.map((f, i) => `${i + 1}. **${f.claim}** (${f.confidence})`).
 ` : '';
 
   return `# Comprehensive Research Report
-
 **Research Query:** ${report.query}
-
----
 
 ## Executive Summary
 
 ${report.executive_summary}
 
----
-
 ## Key Research Findings
 
 ${findings}
 
----
-
 ## Detailed Analysis
 
 ${sectionMd}${deepDiveSection}
+
+---
+
+## References
+
+${numberedReferences.length > 0 ? numberedReferences : 'No citations available in the generated content.'}
+
+---
+
+## Complete Source Bibliography (${uniqueAllUrls.length} total sources searched)
+
+${completeSourceList}
+
+---
 
 ## Research Limitations
 
@@ -1738,20 +1774,9 @@ ${report.limitations.map((l, i) => `${i + 1}. ${l}`).join('\n')}
 
 ---
 
-## References
-
-${numberedReferences}
-
----
-
-## Complete Source Bibliography (${uniqueAllUrls.length} total sources searched)
-
-${appendixB}
-
----
-
 **Research Methodology:** This comprehensive report was generated through systematic analysis of ${allSourceUrls.length} sources across ${report.sections.length} thematic areas, using advanced AI-powered research techniques with human oversight for quality assurance.
 
 **Completion Date:** ${new Date().toLocaleDateString()}
+
 `;
 } 

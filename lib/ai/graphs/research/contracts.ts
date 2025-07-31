@@ -83,6 +83,7 @@ export type ResearchState = {
   pplxDeepCalls: number; // track deep-research calls separately
   tavilyCalls: number;
   openrouterCalls: number;
+  globalCitationCounter: number; // track citation numbering across all sources
   // Enhanced state
   expandedQueries?: ExpandedQuery[];
   evidenceClusters?: EvidenceCluster[];
@@ -123,19 +124,7 @@ export function withinWindow(pub?: string, from?: string, to?: string) {
 export const PROMPT_CLARIFY = (q: string) => `
 You are a research assistant. The user has asked: "${q}"
 
-Generate exactly 2 comprehensive clarifying questions that would help narrow down the scope and dramatically improve the research quality.
-
-Think broadly about what you need to know to create the most valuable possible research report:
-- Time scope (when/what period?)
-- Geographic scope (where/which regions?)
-- Industry/sector specifics
-- Stakeholder perspective (who is affected?)
-- Specific aspects of interest
-- Scale/magnitude (how big/small?)
-- Analysis type needed (quantitative vs qualitative, current vs historical)
-- What decisions or outcomes will this research inform?
-- Level of technical depth appropriate
-- Any specific constraints or priorities
+Generate exactly 2 comprehensive clarifying questions that would help narrow down the scope and dramatically improve the research quality and narrow down search.
 
 For each question, provide:
 - The clarifying question (conversational and clear)
@@ -148,30 +137,18 @@ User question: ${q}
 `;
 
 export const PROMPT_CLARIFY_GEMINI = (q: string) => `
-You are a research strategist helping to design the perfect research approach. The user wants to research: "${q}"
+You are a research assistant. The user has asked: "${q}"
 
-Generate exactly 2 thoughtful questions that will help create a much better, more focused research report. Think creatively about what would make this research most valuable.
-
-Consider asking about:
-- What specific aspects matter most to them
-- What type of analysis would be most useful (quantitative vs qualitative, current vs historical)
-- What perspective or angle would be most insightful
-- What scope or focus would provide the best value
-- What decisions or outcomes will this research inform
-- Level of technical depth appropriate
-- Time frames, geographic regions, or specific demographics of interest
-- Constraints, priorities, or success criteria
-
-Feel free to ask whatever you think would genuinely improve the research - don't be limited by templates. Ask everything relevant NOW.
+Generate exactly 2 comprehensive clarifying questions that would help narrow down the scope and dramatically improve the research quality and narrow down search.
 
 For each question, provide:
-- The question itself (make it conversational and clear)
-- A brief explanation of why this helps
-- 3-4 practical answer options
+- The clarifying question (conversational and clear)
+- Why this question is important (purpose)
+- 3-4 practical suggested answer options
 
-Return a JSON array with exactly 2 questions: [{"question": "...", "purpose": "...", "suggested_answers": ["...", "...", "...", "..."]}]
+Return JSON array with exactly 2 objects: { "question": "...", "purpose": "...", "suggested_answers": ["option1", "option2", "option3", "option4"] }
 
-Research topic: ${q}
+User question: ${q}
 `;
 
 export const PROMPT_QUERY_EXPAND = (macroTopics: string[]) => `
@@ -216,49 +193,68 @@ Evidence items: ${JSON.stringify(evidenceItems.slice(0, 100), null, 2)}
 `;
 
 export const PROMPT_DEEP_GLOBAL = (evidenceClusters: EvidenceCluster[], query: string) => `
-You are writing a comprehensive research brief. Create an analyst-grade report with extensive detail and thorough analysis.
+You are writing a comprehensive research brief with mandatory inline citations throughout.
 
-REQUIREMENTS:
-- Executive summary: ≥300 words with key insights
-- Key findings: ≥15 findings with high confidence citations
-- Main sections: ≥5 sections, each ≥250 words with detailed analysis
-- Inline citations: Use provided evidence extensively (≥60 citations total)
-- Appendix: List all primary sources used
+CRITICAL CITATION REQUIREMENTS:
+- Every factual claim, statistic, quote, or data point MUST have an inline citation immediately after it
+- Use format: "Statement with fact [1]." or "Multiple claims [1][2]."  
+- Number citations sequentially: [1], [2], [3], etc.
+- Include citations throughout ALL content: executive_summary, sections, and key_findings
+- Use provided evidence extensively (≥60 citations total across all content)
+
+CONTENT REQUIREMENTS:
+- Executive summary: ≥300 words with key insights and inline citations [1][2][3]
+- Key findings: ≥15 findings with high confidence citations embedded in claims
+- Main sections: ≥5 sections, each ≥250 words with detailed analysis and inline citations
+- Never make unsupported claims - if no evidence exists, don't include the claim
 
 ANALYSIS DEPTH:
-- Provide quantitative data with context and implications
-- Include trend analysis and comparative insights  
-- Explain causation, not just correlation
-- Address different stakeholder perspectives
-- Highlight market dynamics and competitive landscape
+- Provide quantitative data with context and implications [with citations]
+- Include trend analysis and comparative insights [with citations]
+- Explain causation, not just correlation [with citations]
+- Address different stakeholder perspectives [with citations]  
+- Highlight market dynamics and competitive landscape [with citations]
 
-Return JSON strictly matching the Report schema with comprehensive content.
+EXAMPLE CITATION STYLE:
+"Decentralized governance models show 35% improved accountability through blockchain transparency [1]. The ETHOS framework has been adopted by 12 major protocols, reducing compliance costs by an average of €2.3M annually [2][3]. Recent analysis indicates that 78% of enterprises prefer hybrid governance models over purely centralized approaches [4]."
+
+Return JSON strictly matching the Report schema with comprehensive content and inline citations.
 
 Query: ${query}
 Evidence clusters: ${JSON.stringify(evidenceClusters, null, 2)}
 `;
 
 export const PROMPT_DEEP_FOCUSED = (cluster: EvidenceCluster, query: string) => `
-You are conducting a deep-dive analysis on a specific research theme. Create a comprehensive 700+ word analysis with additional findings and metrics.
+You are conducting a deep-dive analysis on a specific research theme with mandatory inline citations.
 
-REQUIREMENTS:
-- Deep-dive content: ≥700 words with detailed analysis and insights
-- Additional findings: 5 new findings specific to this theme
-- Metrics table: Create a markdown table with ≥8 relevant metrics/data points
+CRITICAL CITATION REQUIREMENTS:
+- Every factual claim, statistic, quote, or data point MUST have an inline citation immediately after it
+- Use format: "Statement with fact [1]." or "Multiple claims [1][2]."  
+- Number citations sequentially: [1], [2], [3], etc.
+- Use ONLY the evidence cluster provided below as sources
+- Never make unsupported claims - if no evidence exists, don't include the claim
+
+CONTENT REQUIREMENTS:
+- Deep-dive content: ≥700 words with detailed analysis, insights, and inline citations [1][2][3]
+- Additional findings: 5 new findings specific to this theme with embedded citations
+- Metrics table: Create a markdown table with ≥8 relevant metrics/data points (cite sources)
 - Use ONLY the evidence cluster provided below
 
-Focus on:
-- Detailed trend analysis with specific numbers
-- Comparative analysis across time periods or segments
-- Market dynamics and implications
-- Stakeholder impact assessment
-- Future projections based on current data
+Focus on (with citations for all claims):
+- Detailed trend analysis with specific numbers [cite sources]
+- Comparative analysis across time periods or segments [cite sources]
+- Market dynamics and implications [cite sources]
+- Stakeholder impact assessment [cite sources]
+- Future projections based on current data [cite sources]
+
+EXAMPLE CITATION STYLE:
+"The adoption rate increased by 45% in Q3 2024 [1]. Market leaders like Protocol X reported 60% efficiency gains [2], while smaller players achieved 25% improvements [3]."
 
 Return JSON: {
   "theme": "...",
-  "content": "700+ word analysis...",
-  "findings": [5 KeyFinding objects],
-  "metrics_table": "markdown table with 8+ metrics"
+  "content": "700+ word analysis with inline citations [1][2][3]...",
+  "findings": [5 KeyFinding objects with citations in claim text],
+  "metrics_table": "markdown table with 8+ metrics and source citations"
 }
 
 Original query: ${query}
@@ -313,22 +309,28 @@ User question: ${q}
 `;
 
 export const PROMPT_SYNTH = (q: string) => `
-You are writing a comprehensive research report with inline citations. 
-Rules:
-- Use ONLY the provided Evidence list (URLs/titles/snippets/dates) as sources.
-- Include inline citations throughout the content using [1], [2], [3] format
-- Every claim, statistic, or data point must have an inline citation
-- Create numbered reference list linking citations to URLs
-- If something is uncertain or conflicting, include it under "limitations".
+You are writing a comprehensive research report with mandatory inline citations.
+
+CRITICAL CITATION REQUIREMENTS:
+- Every factual claim, statistic, quote, or data point MUST have an inline citation immediately after it
+- Use format: "Statement with fact [1]." or "Multiple claims [1][2]."  
+- Number citations sequentially: [1], [2], [3], etc.
+- Use ONLY the provided Evidence list as sources
+- Include citations throughout ALL content: executive_summary, sections, and key_findings
+- Never make unsupported claims - if no evidence exists, don't include the claim
+
+EXAMPLE:
+"Decentralized governance models show 35% improved accountability [1]. ETHOS framework reduces compliance costs by €2.3M annually [2][3]. Recent studies indicate widespread adoption across 12 major protocols [4]."
 
 Return a JSON object with:
 {
   "query": string,
-  "executive_summary": string,
-  "key_findings": [{ "claim": string, "citations": Citation[], "confidence": "high|medium|low" }],
-  "sections": [{ "heading": string, "content": string, "citations": Citation[] }],
+  "executive_summary": string, // MUST include inline citations [1][2][3] throughout
+  "key_findings": [{ "claim": string, "citations": Citation[], "confidence": "high|medium|low" }], // claim MUST include [X] citations
+  "sections": [{ "heading": string, "content": string, "citations": Citation[] }], // content MUST include [X] citations throughout
   "limitations": string[]
 }
 Where Citation has: { "url": string, "title": string, "snippet": string, "published_at": string }
+
 User question: ${q}
 `; 
