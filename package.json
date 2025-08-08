@@ -5,22 +5,35 @@
   "scripts": {
     "setup": "npx tsx setup.ts",
     "start": "npx tsx index.ts",
-    "dev": "npx tsx watch index.ts"
+    "dev": "npx tsx watch index.ts",
+    "cli": "npx tsx cli/run.ts",
+    "agents": "npx tsx cli/run.ts",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "dependencies": {
     "@langchain/community": "^0.3.49",
     "@langchain/core": "^0.3.66",
+    "@langchain/openai": "^0.6.3",
     "axios": "^1.7.2",
     "dotenv": "^16.4.5",
     "google-auth-library": "^10.2.0",
     "googleapis": "^154.1.0",
+    "inquirer": "^12.0.0",
     "ioredis": "^5.7.0",
+    "langchain": "^0.3.30",
     "langsmith": "^0.3.1",
-    "minimist": "^1.2.8"
+    "minimist": "^1.2.8",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@types/inquirer": "^9.0.7",
+    "@types/jest": "^30.0.0",
     "@types/minimist": "^1.2.5",
     "@types/node": "^24.1.0",
+    "jest": "^30.0.5",
+    "ts-jest": "^29.4.1",
     "tsx": "^4.16.2",
     "typescript": "^5.5.4"
   }
