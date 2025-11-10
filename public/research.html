@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Research in Progress - Deep Research Agent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;500;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <canvas id="neuralNetwork"></canvas>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-content">
+        <h1 class="title">LYNX</h1>
+        <p class="subtitle">Research in Progress</p>
+      </div>
+      <div class="connection-status" id="connectionStatus">
+        <span class="status-dot"></span>
+        <span class="status-text">Connecting...</span>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Query Display Section -->
+      <section class="query-display-section">
+        <div class="query-display">
+          <h3 class="query-label">RESEARCH QUERY</h3>
+          <p class="query-text" id="queryDisplay"></p>
+          <div class="mode-badge" id="modeBadge"></div>
+        </div>
+      </section>
+
+      <!-- Agent Actions Section -->
+      <section class="actions-section" id="actionsSection">
+        <div class="section-header">
+          <h2 class="section-title">
+            <span class="pulse-dot"></span>
+            Agent Actions
+          </h2>
+          <div class="progress-stats" id="progressStats">
+            <span class="stat">0 sources</span>
+            <span class="stat">0 queries</span>
+            <span class="stat">0 API calls</span>
+          </div>
+        </div>
+        
+        <div class="timeline" id="actionsTimeline">
+          <!-- Actions will be dynamically added here -->
+        </div>
+      </section>
+
+      <!-- Results Section -->
+      <section class="results-section" id="resultsSection" style="display: none;">
+        <div class="section-header">
+          <h2 class="section-title">Research Report</h2>
+          <div class="result-actions">
+            <button id="copyMarkdownBtn" class="btn-secondary">
+              Copy Markdown
+            </button>
+            <button id="downloadMarkdownBtn" class="btn-secondary">
+              Download
+            </button>
+            <button id="newResearchBtn" class="btn-secondary">
+              New Research
+            </button>
+          </div>
+        </div>
+        
+        <div class="report-preview" id="reportPreview">
+          <!-- Report will be rendered here -->
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="research.js"></script>
+</body>
+</html>

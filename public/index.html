@@ -6,114 +6,65 @@
   <title>Deep Research Agent</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;500;700&family=Press+Start+2P&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <canvas id="neuralNetwork"></canvas>
-  <div class="container">
-    <!-- Header -->
-    <header class="header">
-      <div class="header-content">
-        <h1 class="title">Deep Research Agent</h1>
-        <p class="subtitle">AI-Powered Comprehensive Research System</p>
-      </div>
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <div class="nav-logo">
+      <span class="logo-icon">LYNX</span>
+    </div>
+    <div class="nav-links">
+      <a href="#" class="nav-link">RESEARCH</a>
+      <a href="#" class="nav-link">API</a>
+      <a href="#" class="nav-link">DOCS</a>
+      <a href="#" class="nav-link">ABOUT</a>
+    </div>
+    <div class="nav-status">
       <div class="connection-status" id="connectionStatus">
         <span class="status-dot"></span>
-        <span class="status-text">Connecting...</span>
+        <span class="status-text">CONNECTED</span>
       </div>
-    </header>
+    </div>
+  </nav>
 
-    <!-- Hero Section -->
-    <section class="hero-section">
-      <h2 class="hero-title">AUTONOMOUS RESEARCH INTELLIGENCE</h2>
-      <p class="hero-description">
-        Deploy advanced AI agents to conduct comprehensive research. Our multi-agent system 
-        analyzes complex topics, synthesizes information from multiple sources, and delivers 
-        structured insights in seconds.
+  <!-- Main Hero Section -->
+  <div class="hero-container">
+    <div class="hero-content">
+      <div class="title-wrapper">
+        <h1 class="main-title">LYNX</h1>
+        <p class="main-subtitle">deep research agent</p>
+      </div>
+      
+      <div class="search-container">
+        <input 
+          type="text" 
+          id="queryInput" 
+          class="search-input" 
+          placeholder="What do you want to research?"
+        />
+        <button id="startResearchBtn" class="search-button">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="mode-toggle-wrapper">
+        <label class="mode-toggle">
+          <input type="checkbox" id="deepModeToggle">
+          <span class="toggle-text">Deep Mode</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="bottom-info">
+      <p class="info-text">
+        Powered by advanced AI agents for comprehensive research. Available for real-time analysis and structured insights.
       </p>
-      <div class="features-grid">
-        <div class="feature-card">
-          <h3 class="feature-title">DEEP ANALYSIS</h3>
-          <p class="feature-text">
-            Multi-layered investigation using recursive query decomposition and parallel processing.
-          </p>
-        </div>
-        <div class="feature-card">
-          <h3 class="feature-title">REAL-TIME TRACKING</h3>
-          <p class="feature-text">
-            Monitor every action, query, and decision made by the agent in real-time.
-          </p>
-        </div>
-        <div class="feature-card">
-          <h3 class="feature-title">STRUCTURED OUTPUT</h3>
-          <p class="feature-text">
-            Receive comprehensive reports with citations, analysis, and actionable insights.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- Main Content -->
-    <main class="main-content">
-      <!-- Query Input Section -->
-      <section class="query-section" id="querySection">
-        <div class="input-wrapper">
-          <textarea 
-            id="queryInput" 
-            placeholder="Enter your research query (e.g., 'Analyze the rise and fall of Stability AI')"
-            rows="3"
-          ></textarea>
-          <div class="input-controls">
-            <label class="checkbox-label">
-              <input type="checkbox" id="deepModeToggle">
-              <span>Deep Mode (Enhanced Research)</span>
-            </label>
-            <button id="startResearchBtn" class="btn-primary">
-              Start Research
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <!-- Agent Actions Section -->
-      <section class="actions-section" id="actionsSection" style="display: none;">
-        <div class="section-header">
-          <h2 class="section-title">
-            <span class="pulse-dot"></span>
-            Agent Actions
-          </h2>
-          <div class="progress-stats" id="progressStats">
-            <span class="stat">0 sources</span>
-            <span class="stat">0 queries</span>
-            <span class="stat">0 API calls</span>
-          </div>
-        </div>
-        
-        <div class="timeline" id="actionsTimeline">
-          <!-- Actions will be dynamically added here -->
-        </div>
-      </section>
-
-      <!-- Results Section -->
-      <section class="results-section" id="resultsSection" style="display: none;">
-        <div class="section-header">
-          <h2 class="section-title">Research Report</h2>
-          <div class="result-actions">
-            <button id="copyMarkdownBtn" class="btn-secondary">
-              Copy Markdown
-            </button>
-            <button id="downloadMarkdownBtn" class="btn-secondary">
-              Download
-            </button>
-          </div>
-        </div>
-        
-        <div class="report-preview" id="reportPreview">
-          <!-- Report will be rendered here -->
-        </div>
-      </section>
-    </main>
+    </div>
   </div>
 
   <script src="app.js"></script>
