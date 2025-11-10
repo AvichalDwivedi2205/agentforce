@@ -9,6 +9,7 @@ import {
 
 import { tavilySearchCached } from '../../tavilyCached.js';
 import { clearCache } from '../../../cache/fsCache.js';
+import { emitAction, emitProgress } from './eventEmitter.js';
 
 // QUICK logger helper
 const log = (...args: any[]) => console.log('[research]', ...args);
@@ -749,6 +750,9 @@ async function maybeRunDeepFocused(clusters: EvidenceCluster[], input: ResearchI
 }
 
 async function decompose(input: ResearchInput, state: ResearchState): Promise<SubQuestion[]> {
+  // Emit action
+  emitAction('decompose', 'Analyzing Query', 'Breaking down research query into focused themes...', { model: input.deepMode ? 'Gemini' : 'Mistral' });
+  
   // Generate fallback topics first
   const fallbackTopics = generateFallbackTopics(input.query);
   
@@ -1164,6 +1168,8 @@ async function extractDetailedContent(themes: string[], input: ResearchInput, st
   const contentExtracts: Array<{theme: string, content: string, sources: string[]}> = [];
   
   for (const theme of themes) {
+    emitAction('extract', 'Extracting Content', `Gathering detailed information on: ${theme.substring(0, 60)}...`, { theme });
+    
     try {
       // Get 2-3 sources with full content for this theme (OPTIMIZED)
       const searchResult = await tavilySearchCached({
@@ -1280,6 +1286,7 @@ async function runParallelFocusedResearch(contentExtracts: Array<{theme: string,
     const batch = contentExtracts.slice(i, i + maxConcurrent);
     
     const batchPromises = batch.map(async (extract) => {
+      emitAction('analyze', 'Deep Analysis', `Running comprehensive research on: ${extract.theme.substring(0, 50)}...`, { theme: extract.theme, model: 'sonar-pro' });
       const limits = getResearchLimits(input.deepMode ? 'deeper' : 'deep');
       const maxSonarCalls = limits.maxParts * limits.sonarPerPart;
       if (state.pplxCalls >= maxSonarCalls) {
@@ -1366,6 +1373,8 @@ Note: Extended analysis was not available due to API limitations.`,
 async function synthesizeNarrativeReport(analyses: Array<{theme: string, analysis: string, sources: string[]}>, input: ResearchInput): Promise<{markdown: string, allSources: string[]}> {
   const log = (...args: any[]) => console.log('[research]', ...args);
   log('synthesize> creating narrative report from', analyses.length, 'analyses');
+  
+  emitAction('synthesize', 'Synthesizing Report', 'Creating comprehensive research report from all analyses...', { analyses: analyses.length });
   
   try {
     // Collect all sources
@@ -1550,6 +1559,8 @@ export async function runDeepResearch(input: ResearchInput): Promise<{ report: R
   log('research> starting CONTENT-FIRST research, mode:', input.deepMode ? 'DEEP' : 'NORMAL');
   log('research> skipClarify flag:', !!input.skipClarify);
   
+  emitAction('search', 'Initializing Research', `Starting ${input.deepMode ? 'deep' : 'standard'} research mode...`, { deepMode: input.deepMode });
+  
   // Always clear cache for fresh results and prevent cache bloat
   clearCache();
   log('research> cache cleared automatically for fresh results');
@@ -1621,6 +1632,13 @@ export async function runDeepResearch(input: ResearchInput): Promise<{ report: R
   log('research> ✅ STEP 1 COMPLETE: Identified', themes.length, 'research themes');
   themes.forEach((theme, i) => log(`research>   Theme ${i+1}: ${theme.substring(0, 80)}...`));
   
+  emitProgress({ 
+    step: 'decompose',
+    themes: themes.length,
+    queries: state.tavilyCalls,
+    apiCalls: state.openrouterCalls + state.pplxCalls 
+  });
+  
   // 2) NEW - Extract detailed content from sources for each theme
   log('research> STEP 2: Extracting detailed content from sources...');
   const contentExtracts = await extractDetailedContent(themes, input, state);
@@ -1629,12 +1647,26 @@ export async function runDeepResearch(input: ResearchInput): Promise<{ report: R
     log(`research>   Extract ${i+1}: ${extract.theme.substring(0, 60)}... (${extract.sources.length} sources)`);
   });
   
+  emitProgress({ 
+    step: 'extract',
+    sources: contentExtracts.reduce((sum, e) => sum + e.sources.length, 0),
+    queries: state.tavilyCalls,
+    apiCalls: state.openrouterCalls + state.pplxCalls 
+  });
+  
   // 3) NEW - Run parallel focused research with rich content
   log('research> STEP 3: Running parallel focused research...');
   const focusedAnalyses = await runParallelFocusedResearch(contentExtracts, input, state);
   log('research> ✅ STEP 3 COMPLETE: Completed focused research on', focusedAnalyses.length, 'themes');
   focusedAnalyses.forEach((analysis, i) => {
     log(`research>   Analysis ${i+1}: ${analysis.theme.substring(0, 60)}... (${analysis.sources.length} sources)`);
+  });
+  
+  emitProgress({ 
+    step: 'analyze',
+    sources: focusedAnalyses.reduce((sum, a) => sum + a.sources.length, 0),
+    queries: state.tavilyCalls,
+    apiCalls: state.openrouterCalls + state.pplxCalls 
   });
   
   // Runtime check
@@ -1648,6 +1680,12 @@ export async function runDeepResearch(input: ResearchInput): Promise<{ report: R
   log('research> ✅ STEP 4 COMPLETE: Synthesized final report');
   log('research>   Report length:', markdown.length, 'characters');
   log('research>   Total sources:', allSources.length);
+  
+  emitAction('complete', 'Research Complete', `Generated comprehensive report with ${allSources.length} sources`, { 
+    sources: allSources.length,
+    reportLength: markdown.length,
+    runtime: Math.round((Date.now() - startTime) / 1000)
+  });
   
   // Generate simplified report object for API compatibility (no duplicate processing)
   const reportSummary: Report = {
