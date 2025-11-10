@@ -2,13 +2,12 @@
 import { buildAgent } from "../utils/buildAgent.js";
 import { GmailAgentTool } from "../gmail/index.js";
 import { ResearchAgentTool } from "../research/index.js";
-import { PresentationAgentTool } from "../presentation/index.js";
 import { ORCHESTRATOR_SYSTEM_PROMPT } from "./prompt.js";
 
 // Create Orchestrator Agent Factory
 export const createOrchestratorAgent = () => {
   return buildAgent({
-    tools: [GmailAgentTool, ResearchAgentTool, PresentationAgentTool],
+    tools: [GmailAgentTool, ResearchAgentTool],
     systemPrompt: ORCHESTRATOR_SYSTEM_PROMPT,
     memoryKey: "orchestrator_chat_history",
     llmModel: "anthropic/claude-3.5-sonnet", // Best reasoning for orchestration

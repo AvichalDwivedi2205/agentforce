@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liquidity Index of India: 2025</title>
+    <style>
+        /* General Styles */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #121212;
+            color: #fff;
+            overflow: hidden; /* Hide scrollbars */
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* Slide Styles */
+        .slide {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .slide.active {
+            opacity: 1;
+            z-index: 1;
+        }
+
+        .slide h1 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            color: #64b5f6; /* Accent color */
+        }
+
+        .slide h2 {
+            font-size: 1.8em;
+            margin-bottom: 15px;
+            color: #81d4fa; /* Lighter accent color */
+        }
+
+        .slide p {
+            font-size: 1.2em;
+            line-height: 1.6;
+            text-align: center;
+            max-width: 80%;
+        }
+
+        .slide ul {
+            list-style: none;
+            padding: 0;
+            max-width: 80%;
+        }
+
+        .slide li {
+            font-size: 1.2em;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        /* Navigation Styles */
+        .navigation {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            z-index: 2;
+        }
+
+        .nav-button {
+            background-color: #64b5f6;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1em;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+
+        .nav-button:hover {
+            background-color: #42a5f5;
+        }
+
+        /* Progress Indicator */
+        .progress {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            font-size: 1.2em;
+            color: #bdbdbd;
+            z-index: 2;
+        }
+
+        /* Title Slide Specific Styles */
+        #title-slide {
+            background: linear-gradient(to right, #2196f3, #3f51b5);
+            color: #fff;
+            text-align: center;
+        }
+
+        #title-slide h1 {
+            font-size: 4em;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.7);
+        }
+
+        #title-slide p {
+            font-size: 1.5em;
+            font-style: italic;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+        }
+
+        /* Overview Slide */
+        #overview-slide ul {
+            list-style-type: disc;
+            margin-left: 20px;
+            text-align: left;
+        }
+
+        /* Data/Statistics Slide */
+        .data-point {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #a7ffeb;
+            margin-bottom: 10px;
+        }
+
+        /* Conclusion Slide */
+        #conclusion-slide p {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #ffca28;
+        }
+
+        /* Sources Slide */
+        #sources-slide ul {
+            list-style-type: none;
+            text-align: left;
+        }
+
+        #sources-slide li {
+            margin-bottom: 5px;
+        }
+
+        #sources-slide a {
+            color: #80deea;
+            text-decoration: none;
+        }
+
+        #sources-slide a:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .slide h1 {
+                font-size: 2em;
+            }
+
+            .slide h2 {
+                font-size: 1.5em;
+            }
+
+            .slide p,
+            .slide li {
+                font-size: 1em;
+            }
+
+            .navigation {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .nav-button {
+                padding: 8px 16px;
+                font-size: 0.9em;
+            }
+
+            #title-slide h1 {
+                font-size: 3em;
+            }
+
+            #title-slide p {
+                font-size: 1.2em;
+            }
+        }
+
+        /* CSS Art - Subtle Background Pattern */
+        .slide::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cdefs%3E%3Cpattern id='diagonalHatch' width='10' height='10' patternUnits='userSpaceOnUse'%3E%3Cpath d='M-2,2 L2,-2 M8,12 L12,8' stroke='%23212121' stroke-width='2' /%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%' height='100%' fill='url(%23diagonalHatch)' /%3E%3C/svg%3E");
+            opacity: 0.1;
+            z-index: -1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <!-- Title Slide -->
+        <div class="slide active" id="title-slide">
+            <h1>Liquidity Index of India: 2025</h1>
+            <p>Current State, Trends, Challenges, and Opportunities</p>
+        </div>
+
+        <!-- Overview/Agenda Slide -->
+        <div class="slide" id="overview-slide">
+            <h1>Overview</h1>
+            <h2>Agenda:</h2>
+            <ul>
+                <li>Executive Summary</li>
+                <li>Key Research Findings</li>
+                <li>Detailed Analysis</li>
+                <li>Challenges and Opportunities</li>
+                <li>Expert Perspectives and Future Outlook</li>
+                <li>Research Limitations</li>
+            </ul>
+        </div>
+
+        <!-- Executive Summary -->
+        <div class="slide">
+            <h1>Executive Summary</h1>
+            <p>India's liquidity landscape is dynamic, influenced by systemic liquidity, regulatory interventions, and macroeconomic factors. Banking system liquidity is high, but private capex is muted. Regulatory measures present challenges. Outlook is cautiously optimistic.</p>
+        </div>
+
+        <!-- Key Finding 1 -->
+        <div class="slide">
+            <h1>Key Finding 1</h1>
+            <h2>Robust Systemic Liquidity Amidst Policy Support</h2>
+            <p>RBI interventions led to a surplus of ₹2.9 trillion in the banking system. CRR reduction projected to release an additional ₹2.5 trillion. Total liquidity reached $3.74 trillion in 2025.</p>
+        </div>
+
+        <!-- Key Finding 2 -->
+        <div class="slide">
+            <h1>Key Finding 2</h1>
+            <h2>Liquidity Weight Index for Indian Treasury Bills</h2>
+            <p>Index stood at 242.326 on May 16, 2025, indicating a long-term increase in liquidity in the treasury bill market.</p>
+        </div>
+
+        <!-- Key Finding 3 -->
+        <div class="slide">
+            <h1>Key Finding 3</h1>
+            <h2>Impact of Liquidity on Lending and Economic Stability</h2>
+            <p>Enhanced liquidity enables banks to increase lending capacity, contributing to economic stability and expansion.</p>
+        </div>
+
+        <!-- Key Finding 4 -->
+        <div class="slide">
+            <h1>Key Finding 4</h1>
+            <h2>Muted Private Capital Expenditure Despite Abundant Liquidity</h2>
+            <p>Private capex remains subdued despite abundant liquidity, indicating a disconnect between financial liquidity and real economic investment.</p>
+        </div>
+
+        <!-- Key Finding 5 -->
+        <div class="slide">
+            <h1>Key Finding 5</h1>
+            <h2>RBI's Proactive Liquidity Management and Expert Views</h2>
+            <p>Experts acknowledge RBI's proactive approach but debate its effectiveness in stimulating private investment and consumption.</p>
+        </div>
+
+        <!-- Key Finding 6 -->
+        <div class="slide">
+            <h1>Key Finding 6</h1>
+            <h2>Potential for Enhanced Liquidity in Commodity Derivatives Markets</h2>
+            <p>SEBI and RBI considering allowing commercial banks to trade in commodity derivatives, which could enhance liquidity in commodity markets.</p>
+        </div>
+
+        <!-- Key Finding 7 -->
+        <div class="slide">
+            <h1>Key Finding 7</h1>
+            <h2>Fluctuating Net Liquidity Injection by RBI</h2>
+            <p>Net liquidity injected by RBI has shown a fluctuating trend, with a net withdrawal of approximately -2.23 trillion INR on May 15, 2025.</p>
+        </div>
+
+        <!-- Key Finding 8 -->
+        <div class="slide">
+            <h1>Key Finding 8</h1>
+            <h2>Introduction of the Liquidity Mismatch Index (LMI)</h2>
+            <p>LMI assesses the risk arising from the maturity mismatch between banks' assets and liabilities, providing a more sophisticated view of liquidity risk.</p>
+        </div>
+
+        <!-- Key Finding 9 -->
+        <div class="slide">
+            <h1>Key Finding 9</h1>
+            <h2>Monetary Policy Tools for Liquidity Management</h2>
+            <p>RBI employed repo rate cuts, variable rate repo auctions, and CRR reductions to manage liquidity conditions.</p>
+        </div>
+
+        <!-- Key Finding 10 -->
+        <div class="slide">
+            <h1>Key Finding 10</h1>
+            <h2>Policy Shift to Optimize Liquidity Buffers</h2>
+            <p>RBI introduced new norms aimed at releasing approximately $35 billion into the financial system by optimizing banks' liquidity buffers.</p>
+        </div>
+
+        <!-- Key Finding 11 -->
+        <div class="slide">
+            <h1>Key Finding 11</h1>
+            <h2>Market Impact of Liquidity and Monetary Easing</h2>
+            <p>Indian banks' market capitalization and liquidity conditions saw improvements in Q2 2025, supported by rate cuts and liquidity measures.</p>
+        </div>
+
+        <!-- Key Finding 12 -->
+        <div class="slide">
+            <h1>Key Finding 12</h1>
+            <h2>Banking Sector Vulnerabilities from Maturity Mismatches</h2>
+            <p>Rising LMI signals potential risks stemming from maturity mismatches within banks, which could exacerbate liquidity crunches.</p>
+        </div>
+
+        <!-- Key Finding 13 -->
+        <div class="slide">
+            <h1>Key Finding 13</h1>
+            <h2>Expert Emphasis on Sophisticated Liquidity Risk Metrics</h2>
+            <p>Researchers and practitioners emphasize the importance of sophisticated liquidity risk metrics like LMI for a better understanding of systemic vulnerabilities.</p>
+        </div>
+
+        <!-- Key Finding 14 -->
+        <div class="slide">
+            <h1>Key Finding 14</h1>
+            <h2>Debate on Optimal Liquidity Levels</h2>
+            <p>Ongoing debate among stakeholders regarding the optimal liquidity level that banks should maintain.</p>
+        </div>
+
+        <!-- Key Finding 15 -->
+        <div class="slide">
+            <h1>Key Finding 15</h1>
+            <h2>Severe Liquidity Crisis in Early 2025</h2>
+            <p>India experienced one of its most severe liquidity crises in over a decade in early 2025, with the banking system facing a deficit of ₹3.3 lakh crore.</p>
+        </div>
+
+        <!-- Key Finding 16 -->
+        <div class="slide">
+            <h1>Key Finding 16</h1>
+            <h2>Rupee Depreciation Exacerbating Liquidity Pressures</h2>
+            <p>Depreciation of the Indian Rupee significantly exacerbated liquidity pressures, reaching an all-time low of ₹86.70 in January 2025.</p>
+        </div>
+
+        <!-- Key Finding 17 -->
+        <div class="slide">
+            <h1>Key Finding 17</h1>
+            <h2>RBI's Multi-Pronged Liquidity Injections</h2>
+            <p>RBI injected substantial liquidity through VRR operations and open market purchases of government securities to counter the liquidity crunch.</p>
+        </div>
+
+        <!-- Key Finding 18 -->
+        <div class="slide">
+            <h1>Key Finding 18</h1>
+            <h2>Regulatory Constraints on Liquidity and Credit Growth</h2>
+            <p>Regulatory liquidity requirements, such as SLR and LCR, have been criticized for potentially constraining credit growth and economic expansion.</p>
+        </div>
+
+        <!-- Key Finding 19 -->
+        <div class="slide">
+            <h1>Key Finding 19</h1>
+            <h2>Impact of Liquidity Shortfall on Credit and Economy</h2>
+            <p>Liquidity crunch led to tightened credit availability and increased lending rates, potentially slowing economic activity.</p>
+        </div>
+
+        <!-- Key Finding 20 -->
+        <div class="slide">
+            <h1>Key Finding 20</h1>
+            <h2>Opportunities in Market Deepening and Digitalization</h2>
+            <p>Deepening of government securities and corporate bond markets offers alternative avenues for liquidity management and credit provision.</p>
+        </div>
+
+        <!-- Key Finding 21 -->
+        <div class="slide">
+            <h1>Key Finding 21</h1>
+            <h2>State-Owned Banks and Liquidity Mismatches</h2>
+            <p>State-owned banks tend to have higher liquidity mismatches than private banks, suggesting that ownership structure influences liquidity risk management.</p>
+        </div>
+
+        <!-- Key Finding 22 -->
+        <div class="slide">
+            <h1>Key Finding 22</h1>
+            <h2>Balancing Prudential Aims with Growth Objectives</h2>
+            <p>Experts advocate for revisiting liquidity rules to balance prudential aims with growth objectives.</p>
+        </div>
+
+        <!-- Key Finding 23 -->
+        <div class="slide">
+            <h1>Key Finding 23</h1>
+            <h2>Concerns about Deposit Mobilization and Regulatory Reforms</h2>
+            <p>Practitioners express concerns about deposit mobilization challenges and urge reforms in liquidity norms and enhanced coordination between monetary and fiscal authorities.</p>
+        </div>
+
+        <!-- Key Finding 24 -->
+        <div class="slide">
+            <h1>Key Finding 24</h1>
+            <h2>Downside Risks to Growth from Liquidity Constraints</h2>
+            <p>Growth projections anticipate GDP growth between 6.5% and 7.3%, but with significant downside risks from global uncertainties and domestic liquidity constraints.</p>
+        </div>
+
+        <!-- Key Finding 25 -->
+        <div class="slide">
+            <h1>Key Finding 25</h1>
+            <h2>Improved Equity Market Performance with Stabilizing Liquidity</h2>
+            <p>Market analysts foresee improved equity market performance as liquidity conditions stabilize and pro-growth policies take effect.</p>
+        </div>
+
+        <!-- Detailed Analysis -->
+        <div class="slide">
+            <h1>Detailed Analysis</h1>
+            <p>India's liquidity index is influenced by monetary policy, regulatory initiatives, and market dynamics. The balance between liquidity and economic investment remains a key challenge.</p>
+        </div>
+
+        <!-- Challenges and Opportunities -->
+        <div class="slide">
+            <h1>Challenges and Opportunities</h1>
+            <h2>Challenges:</h2>
+            <ul>
+                <li>Structural imbalance between credit growth and deposit mobilization</li>
+                <li>Regulatory constraints (SLR, LCR)</li>
+                <li>External shocks (global market volatility, currency depreciation)</li>
+            </ul>
+            <h2>Opportunities:</h2>
+            <ul>
+                <li>RBI's proactive liquidity management</li>
+                <li>Introduction of innovative liquidity metrics (LMI)</li>
+                <li>Deepening of government securities and corporate bond markets</li>
+                <li>Advancement of digital banking and financial technologies</li>
+            </ul>
+        </div>
+
+        <!-- Expert Perspectives and Future Outlook -->
+        <div class="slide">
+            <h1>Expert Perspectives and Future Outlook</h1>
+            <p>Experts emphasize RBI's role in maintaining financial stability but debate the effectiveness of current measures. Future outlook is generally positive with inherent complexities.</p>
+        </div>
+
+        <!-- Research Limitations -->
+        <div class="slide">
+            <h1>Research Limitations</h1>
+            <ul>
+                <li>Data timeliness and granularity</li>
+                <li>Causality vs. correlation</li>
+                <li>Scope of "Liquidity Index"</li>
+                <li>Forward-looking statements</li>
+                <li>Qualitative vs. quantitative data</li>
+                <li>Limited global comparative data</li>
+            </ul>
+        </div>
+
+        <!-- Sources Slide -->
+        <div class="slide" id="sources-slide">
+            <h1>Sources</h1>
+            <ul>
+                <li><a href="https://in.investing.com/equities/liquidity-service-chart" target="_blank">[1] Liquidity Services Chart (LQDT) - Investing.com India</a></li>
+                <li><a href="https://tradingeconomics.com/india/stock-market/news/500003" target="_blank">[2] India Eyes Deeper Commodity Liquidity via Bank Participation</a></li>
+                <li><a href="https://www.ceicdata.com/en/india/the-clearing-corporation-of-india-limited-ccil-treasury-bill-index-and-bond-index/ccil-treasury-bills-liquidity-weight-index" target="_blank">[3] India CCIL: Treasury Bills: Liquidity Weight Index | Economic Indicators</a></li>
+                <li><a href="https://www.angelone.in/news/market-updates/indian-banking-system-liquidity-soars-to-3-year-high-of-3-74-trillion-rbi-data" target="_blank">[4] Indian Banking System Liquidity Soars to 3-Year High of $3.74 Trillion</a></li>
+                <li><a href="https://a-e-l.scholasticahq.com/article/138292-a-liquidity-mismatch-index-lmi-for-indian-banks" target="_blank">[5] A Liquidity Mismatch Index (LMI) for Indian Banks</a></li>
+                <li><a href="https://bigul.co/blog/market-update/rbis-government-bond-holdings-soar-to-record-levels-amid-liquidity-push" target="_blank">[6] RBI's Government Bond Holdings Soar to Record Levels Amid ...</a></li>
+                <li><a href="https://am.jpmorgan.com/tw/en/asset-management/institutional/insights/market-insights/market-updates/on-the-minds-of-investors/india-still-promising-even-after-losing-momentum/" target="_blank">[7] India still promising, even after losing momentum</a></li>
+                <li><a href="https://sg.finance.yahoo.com/news/indian-central-banks-liquidity-norm-062053703.html" target="_blank">[8] Indian central bank's new liquidity norm to free up $35 billion, likely ...</a></li>
+                <!-- Add remaining sources -->
+            </ul>
+        </div>
+
+        <!-- Conclusion Slide -->
+        <div class="slide" id="conclusion-slide">
+            <h1>Conclusion</h1>
+            <p>India's liquidity index in 2025 presents a complex picture of robust systemic liquidity alongside challenges in private investment and regulatory constraints. Proactive management and innovative metrics are key to future stability and growth.</p>
+        </div>
+
+        <!-- Navigation Controls -->
+        <div class="navigation">
+            <button class="nav-button" id="prev-button">Previous</button>
+            <button class="nav-button" id="next-button">Next</button>
+        </div>
+
+        <!-- Progress Indicator -->
+        <div class="progress"><span id="slide-number">1</span> / <span id="total-slides"></span></div>
+    </div>
+
+    <script>
+        const slides = document.querySelectorAll('.slide');
+        const prevButton = document.getElementById('prev-button');
+        const nextButton = document.getElementById('next-button');
+        const slideNumber = document.getElementById('slide-number');
+        const totalSlides = document.getElementById('total-slides');
+        let currentSlide = 0;
+
+        totalSlides.textContent = slides.length;
+
+        function showSlide(n) {
+            slides[currentSlide].classList.remove('active');
+            currentSlide = (n + slides.length) % slides.length;
+            slides[currentSlide].classList.add('active');
+            slideNumber.textContent = currentSlide + 1;
+        }
+
+        function nextSlide() {
+            showSlide(currentSlide + 1);
+        }
+
+        function prevSlide() {
+            showSlide(currentSlide - 1);
+        }
+
+        nextButton.addEventListener('click', nextSlide);
+        prevButton.addEventListener('click', prevSlide);
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowLeft') {
+                prevSlide();
+            } else if (e.key === 'ArrowRight') {
+                nextSlide();
+            }
+        });
+    </script>
+</body>
+</html>

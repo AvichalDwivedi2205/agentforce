@@ -1,76 +1,90 @@
-// Presentation Agent Implementation
-import { buildAgent, createAgentTool } from "../utils/buildAgent.js";
+// Presentation Generation using Google Gemini 2.5 Flash
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { PRESENTATION_SYSTEM_PROMPT } from "./prompt.js";
 
-// Create Presentation Agent Factory
-export const createPresentationAgent = () => {
-  return buildAgent({
-    tools: [], // No external tools needed - pure LLM generation
-    systemPrompt: PRESENTATION_SYSTEM_PROMPT,
-    memoryKey: "presentation_chat_history",
-    llmModel: "anthropic/claude-3.5-sonnet", // Best for creative HTML/CSS generation
-    temperature: 0.7, // Higher creativity for design
-    useConversationSummary: false, // No need for history in presentation generation
-    maxTokenLimit: 8000 // Higher limit for complete HTML/CSS output
-  });
-};
-
-// Presentation Agent Tool for use by other agents
-export const PresentationAgentTool = createAgentTool(
-  "presentation_agent",
-  `Delegates presentation creation tasks to a specialized Presentation agent. Use this tool to:
-  - Convert research reports into HTML/CSS presentation slides
-  - Transform documents into visual slide decks
-  - Create professional, interactive presentations with modern styling
-  - Generate self-contained HTML presentations with navigation
-  
-  Pass the research content or document text. The agent will return complete HTML code.
-  
-  Examples:
-  - "Create a presentation from this research report on climate change"
-  - "Transform this market analysis into a slide deck"
-  - "Generate slides from this technical documentation"`,
-  createPresentationAgent(),
-  "presentation_session"
-);
-
-// Export the standalone agent for direct use
-export const presentationAgent = createPresentationAgent();
+// Initialize Gemini API
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
 
 // Helper function to generate presentation from research markdown
 export async function generatePresentation(researchContent: string): Promise<string> {
-  const agentFactory = createPresentationAgent();
-  const agentExecutor = agentFactory("presentation_session");
-  
-  const prompt = `Create a professional, visually appealing HTML/CSS presentation from the following research content. 
-  
-Include:
-- A compelling title slide
-- Multiple content slides breaking down the key points
-- Visual design with modern CSS
-- Navigation controls (arrow keys and buttons)
-- Smooth transitions
-- Responsive design
+  try {
+    console.log('Generating presentation with Gemini 2.5 Flash...');
+    
+    // Get the Gemini model
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.0-flash-exp",
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 8000,
+      }
+    });
+
+    const prompt = `${PRESENTATION_SYSTEM_PROMPT}
+
+Now, create a professional, visually appealing HTML/CSS presentation from the following research content.
+
+REQUIREMENTS:
+- Create a complete, self-contained HTML file
+- Include a compelling title slide
+- Break content into multiple slides (one key point per slide)
+- Use modern CSS with gradients, shadows, and animations
+- Add navigation controls (arrow keys and clickable buttons)
+- Include smooth transitions between slides
+- Make it fully responsive
+- Use a professional color scheme (dark theme with accent colors)
+- Add slide numbers/progress indicator
+
+IMPORTANT: 
+- Generate ONLY the complete HTML code
+- Start with <!DOCTYPE html>
+- Include all CSS in <style> tags
+- Include all JavaScript in <script> tags
+- Do NOT include markdown code blocks (no \`\`\`html)
+- Do NOT add any explanations before or after the HTML
 
 Research Content:
-${researchContent}
+${researchContent}`;
 
-Generate ONLY the complete HTML code. Do not include markdown code blocks or explanations.`;
-
-  const response = await agentExecutor.invoke({
-    input: prompt
-  });
-
-  // Extract the HTML from the response
-  let html = response.output;
-  
-  // Clean up any markdown code blocks if present
-  html = html.replace(/```html\n?/g, '').replace(/```\n?/g, '');
-  
-  // Ensure we have a complete HTML document
-  if (!html.includes('<!DOCTYPE html>')) {
-    throw new Error('Generated content is not a valid HTML document');
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    let html = response.text();
+    
+    console.log('Gemini response received, length:', html.length);
+    
+    // Clean up any markdown code blocks if present
+    html = html.replace(/```html\n?/g, '').replace(/```\n?/g, '').trim();
+    
+    // Remove any leading/trailing explanatory text
+    const doctypeIndex = html.indexOf('<!DOCTYPE');
+    if (doctypeIndex > 0) {
+      html = html.substring(doctypeIndex);
+    }
+    
+    // Remove any text after closing </html>
+    const htmlEndIndex = html.lastIndexOf('</html>');
+    if (htmlEndIndex > 0) {
+      html = html.substring(0, htmlEndIndex + 7);
+    }
+    
+    // Validate HTML structure
+    if (!html.includes('<!DOCTYPE html>') || !html.includes('</html>')) {
+      console.error('Invalid HTML generated');
+      throw new Error('Generated content is not a valid HTML document');
+    }
+    
+    console.log('Presentation generated successfully');
+    return html;
+    
+  } catch (error: any) {
+    console.error('Gemini API error:', error);
+    throw new Error(`Failed to generate presentation: ${error.message}`);
   }
-  
-  return html;
 }
+
+// Legacy exports for compatibility
+export const createPresentationAgent = () => {
+  throw new Error('Direct agent creation is deprecated. Use generatePresentation() instead.');
+};
+
+export const PresentationAgentTool = null;
+export const presentationAgent = null;

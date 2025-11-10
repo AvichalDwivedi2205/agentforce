@@ -67,7 +67,7 @@ export const buildAgent = ({
   // Create the proper prompt template for OpenAI Functions agents
   const prompt = ChatPromptTemplate.fromMessages([
     SystemMessagePromptTemplate.fromTemplate(systemPrompt),
-    new MessagesPlaceholder(memoryKey, true), // optional=true for chat history
+    new MessagesPlaceholder(memoryKey),
     HumanMessagePromptTemplate.fromTemplate("{input}"),
     new MessagesPlaceholder("agent_scratchpad")
   ]);
@@ -82,7 +82,6 @@ export const buildAgent = ({
         llm,
         chatHistory,
         memoryKey,
-        maxTokenLimit,
         returnMessages: true
       });
     } else {
@@ -93,19 +92,21 @@ export const buildAgent = ({
       });
     }
 
-    const agent = createOpenAIFunctionsAgent({
-      llm,
-      tools,
-      prompt
-    });
+    const agent = async (input: any) => {
+      return await createOpenAIFunctionsAgent({
+        llm,
+        tools,
+        prompt
+      });
+    };
 
-    return AgentExecutor.fromAgentAndMemory({
-      agent,
+    return new AgentExecutor({
+      agent: agent as any,
       memory,
       tools,
       verbose: true,
       maxIterations: 5,
-      earlyStoppingMethod: "generate"
+      earlyStoppingMethod: "generate" as const
     });
   };
 
@@ -132,7 +133,7 @@ export const createAgentTool = (
         
         const result = await agent.invoke(
           { input },
-          { ...config, sessionId }
+          config
         );
         
         console.log(`[${name}] Request completed successfully`);

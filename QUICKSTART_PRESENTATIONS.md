@@ -2,6 +2,13 @@
 
 ## 🚀 Getting Started (30 seconds)
 
+### Step 0: Make Sure You Have Google API Key ✅
+Add your Google API key to `.env`:
+```
+GOOGLE_API_KEY=your_api_key_here
+```
+Get it from: https://makersuite.google.com/app/apikey
+
 ### Step 1: Server is Running ✅
 Your server is already running at http://localhost:3000
 

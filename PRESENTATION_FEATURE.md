@@ -163,8 +163,9 @@ To test the feature:
 
 ## Dependencies
 
-No new dependencies required! The feature uses:
-- Existing LangChain agents
-- Claude 3.5 Sonnet model
+**Updated:** Now uses Google's Gemini 2.5 Flash for faster, more reliable generation!
+
+- `@google/generative-ai` - Google's Generative AI SDK
 - Standard Node.js file system
 - Vanilla JavaScript for frontend
+- Google API Key (add to `.env`)
