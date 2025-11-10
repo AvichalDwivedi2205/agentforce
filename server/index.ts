@@ -7,6 +7,8 @@ import { fileURLToPath } from 'url';
 import { EventEmitter } from 'events';
 import { runDeepResearch } from '../lib/ai/graphs/research/graph.js';
 import { setResearchEmitter } from '../lib/ai/graphs/research/eventEmitter.js';
+import { generatePresentation } from '../agents/presentation/index.js';
+import { promises as fs } from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -112,6 +114,78 @@ wss.on('connection', (ws: WebSocket) => {
 // Health check endpoint
 app.get('/api/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok', connections: clients.size });
+});
+
+// Generate presentation endpoint
+app.post('/api/generate-presentation', async (req: Request, res: Response) => {
+  try {
+    const { markdown } = req.body;
+    
+    if (!markdown) {
+      return res.status(400).json({ error: 'Markdown content is required' });
+    }
+
+    console.log('Generating presentation from markdown...');
+    
+    const html = await generatePresentation(markdown);
+    
+    // Save presentation to generated_files directory
+    const timestamp = new Date().toISOString().replace(/:/g, '-');
+    const filename = `presentation-${timestamp}.html`;
+    const filePath = path.join(__dirname, '../generated_files', filename);
+    
+    await fs.writeFile(filePath, html, 'utf-8');
+    
+    console.log(`Presentation saved: ${filename}`);
+    
+    res.json({ 
+      success: true, 
+      filename,
+      html
+    });
+  } catch (error: any) {
+    console.error('Presentation generation error:', error);
+    res.status(500).json({ 
+      error: error.message || 'Failed to generate presentation' 
+    });
+  }
+});
+
+// Serve presentation files
+app.get('/presentations/:filename', async (req: Request, res: Response) => {
+  try {
+    const { filename } = req.params;
+    const filePath = path.join(__dirname, '../generated_files', filename);
+    
+    const html = await fs.readFile(filePath, 'utf-8');
+    res.setHeader('Content-Type', 'text/html');
+    res.send(html);
+  } catch (error) {
+    console.error('Error serving presentation:', error);
+    res.status(404).send('Presentation not found');
+  }
+});
+
+// List all presentations
+app.get('/api/presentations', async (_req: Request, res: Response) => {
+  try {
+    const generatedFilesPath = path.join(__dirname, '../generated_files');
+    const files = await fs.readdir(generatedFilesPath);
+    
+    const presentations = files
+      .filter(file => file.startsWith('presentation-') && file.endsWith('.html'))
+      .map(file => ({
+        filename: file,
+        url: `/presentations/${file}`,
+        timestamp: file.replace('presentation-', '').replace('.html', '')
+      }))
+      .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+    
+    res.json({ presentations });
+  } catch (error) {
+    console.error('Error listing presentations:', error);
+    res.status(500).json({ error: 'Failed to list presentations' });
+  }
 });
 
 const PORT = process.env.PORT || 3000;

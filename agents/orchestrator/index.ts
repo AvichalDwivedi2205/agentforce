@@ -2,12 +2,13 @@
 import { buildAgent } from "../utils/buildAgent.js";
 import { GmailAgentTool } from "../gmail/index.js";
 import { ResearchAgentTool } from "../research/index.js";
+import { PresentationAgentTool } from "../presentation/index.js";
 import { ORCHESTRATOR_SYSTEM_PROMPT } from "./prompt.js";
 
 // Create Orchestrator Agent Factory
 export const createOrchestratorAgent = () => {
   return buildAgent({
-    tools: [GmailAgentTool, ResearchAgentTool],
+    tools: [GmailAgentTool, ResearchAgentTool, PresentationAgentTool],
     systemPrompt: ORCHESTRATOR_SYSTEM_PROMPT,
     memoryKey: "orchestrator_chat_history",
     llmModel: "anthropic/claude-3.5-sonnet", // Best reasoning for orchestration
@@ -35,7 +36,8 @@ export const agentUtils = {
       },
       subAgents: {
         gmail_agent: { status: "ready", session: "gmail_session" },
-        research_agent: { status: "ready", session: "research_session" }
+        research_agent: { status: "ready", session: "research_session" },
+        presentation_agent: { status: "ready", session: "presentation_session" }
       },
       memoryStats: stats
     };
@@ -44,7 +46,7 @@ export const agentUtils = {
   // Clear all agent memories
   async clearAllMemory() {
     const { memoryUtils } = require("../utils/buildAgent.js");
-    const sessions = ["default", "gmail_session", "research_session"];
+    const sessions = ["default", "gmail_session", "research_session", "presentation_session"];
     
     for (const session of sessions) {
       await memoryUtils.clearSession(session);
@@ -55,12 +57,13 @@ export const agentUtils = {
   },
 
   // Get conversation history for a specific agent
-  async getAgentHistory(agentType: "orchestrator" | "gmail" | "research") {
+  async getAgentHistory(agentType: "orchestrator" | "gmail" | "research" | "presentation") {
     const { memoryUtils } = require("../utils/buildAgent.js");
     const sessionMap = {
       orchestrator: "default",
       gmail: "gmail_session", 
-      research: "research_session"
+      research: "research_session",
+      presentation: "presentation_session"
     };
     
     const sessionId = sessionMap[agentType];

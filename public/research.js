@@ -103,10 +103,16 @@ const resultsSection = document.getElementById('resultsSection');
 const reportPreview = document.getElementById('reportPreview');
 const copyMarkdownBtn = document.getElementById('copyMarkdownBtn');
 const downloadMarkdownBtn = document.getElementById('downloadMarkdownBtn');
+const generatePresentationBtn = document.getElementById('generatePresentationBtn');
+const viewPresentationsBtn = document.getElementById('viewPresentationsBtn');
 const newResearchBtn = document.getElementById('newResearchBtn');
+const presentationStatus = document.getElementById('presentationStatus');
+const presentationStatusMessage = document.getElementById('presentationStatusMessage');
+const viewPresentationBtn = document.getElementById('viewPresentationBtn');
 
 // State
 let currentMarkdown = '';
+let currentPresentationUrl = '';
 let stats = {
   sources: 0,
   queries: 0,
@@ -378,6 +384,123 @@ downloadMarkdownBtn.addEventListener('click', () => {
 newResearchBtn.addEventListener('click', () => {
   window.location.href = '/';
 });
+
+generatePresentationBtn.addEventListener('click', async () => {
+  if (!currentMarkdown) return;
+  
+  // Show status
+  presentationStatus.style.display = 'block';
+  presentationStatusMessage.textContent = 'Generating presentation... This may take a moment.';
+  presentationStatusMessage.style.color = '#00c8ff';
+  viewPresentationBtn.style.display = 'none';
+  generatePresentationBtn.disabled = true;
+  generatePresentationBtn.textContent = 'Generating...';
+  
+  try {
+    const response = await fetch('/api/generate-presentation', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ markdown: currentMarkdown })
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to generate presentation');
+    }
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      currentPresentationUrl = data.filename;
+      presentationStatusMessage.textContent = 'Presentation generated successfully!';
+      presentationStatusMessage.style.color = '#00ff88';
+      viewPresentationBtn.style.display = 'inline-block';
+      viewPresentationBtn.onclick = () => {
+        window.open(`/presentations/${currentPresentationUrl}`, '_blank');
+      };
+    } else {
+      throw new Error(data.error || 'Unknown error');
+    }
+  } catch (error) {
+    console.error('Presentation generation error:', error);
+    presentationStatusMessage.textContent = `Error: ${error.message}`;
+    presentationStatusMessage.style.color = '#ff4444';
+  } finally {
+    generatePresentationBtn.disabled = false;
+    generatePresentationBtn.textContent = 'Generate Presentation';
+  }
+});
+
+viewPresentationsBtn.addEventListener('click', async () => {
+  try {
+    const response = await fetch('/api/presentations');
+    if (!response.ok) {
+      throw new Error('Failed to fetch presentations');
+    }
+    
+    const data = await response.json();
+    
+    if (data.presentations && data.presentations.length > 0) {
+      // Open presentations list in a new modal or window
+      showPresentationsList(data.presentations);
+    } else {
+      alert('No presentations available yet. Generate one first!');
+    }
+  } catch (error) {
+    console.error('Error fetching presentations:', error);
+    alert('Failed to load presentations');
+  }
+});
+
+function showPresentationsList(presentations) {
+  // Create modal overlay
+  const modal = document.createElement('div');
+  modal.className = 'presentation-modal';
+  modal.innerHTML = `
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>All Presentations</h2>
+        <button class="close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="presentations-grid">
+          ${presentations.map((p, index) => `
+            <div class="presentation-card">
+              <div class="card-header">
+                <h3>Presentation ${presentations.length - index}</h3>
+                <span class="card-date">${new Date(p.timestamp).toLocaleString()}</span>
+              </div>
+              <button class="view-presentation-card-btn" data-url="${p.url}">
+                View Presentation
+              </button>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  // Add event listeners
+  modal.querySelector('.close-modal').addEventListener('click', () => {
+    document.body.removeChild(modal);
+  });
+  
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      document.body.removeChild(modal);
+    }
+  });
+  
+  modal.querySelectorAll('.view-presentation-card-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const url = e.target.getAttribute('data-url');
+      window.open(url, '_blank');
+    });
+  });
+}
 
 // Initialize on page load
 connectWebSocket();
