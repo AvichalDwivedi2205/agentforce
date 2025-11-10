@@ -28,6 +28,7 @@ PORT=3000  # Default is 3000
 ```
 
 You can copy from `env.template`:
+
 ```bash
 cp env.template .env
 # Then edit .env with your actual API keys
@@ -58,20 +59,24 @@ Navigate to `http://localhost:3000` in your browser. You should see the Deep Res
 ## 🎨 UI Overview
 
 ### Header
+
 - **Connection Status** - Shows real-time WebSocket connection status
 - **Title and Subtitle** - Branding and description
 
 ### Query Section
+
 - **Query Input** - Enter your research question
 - **Deep Mode Toggle** - Enable for enhanced research with more sources
 - **Start Research Button** - Initiates the research process
 
 ### Agent Actions Timeline
+
 - **Real-time Updates** - See each step the agent takes
 - **Action Details** - View descriptions, timestamps, and metadata
 - **Progress Stats** - Track sources, queries, and API calls
 
 ### Results Section
+
 - **Report Preview** - Rendered markdown with proper formatting
 - **Copy Button** - Copy markdown to clipboard
 - **Download Button** - Save report as `.md` file
@@ -102,6 +107,7 @@ agentforce/
 ## 📡 WebSocket Events
 
 ### Client → Server
+
 ```typescript
 {
   type: 'START_RESEARCH',
@@ -114,6 +120,7 @@ agentforce/
 ### Server → Client
 
 **Research Started**
+
 ```typescript
 {
   type: 'RESEARCH_STARTED',
@@ -122,6 +129,7 @@ agentforce/
 ```
 
 **Agent Action**
+
 ```typescript
 {
   type: 'AGENT_ACTION',
@@ -137,6 +145,7 @@ agentforce/
 ```
 
 **Research Progress**
+
 ```typescript
 {
   type: 'RESEARCH_PROGRESS',
@@ -148,6 +157,7 @@ agentforce/
 ```
 
 **Research Complete**
+
 ```typescript
 {
   type: 'RESEARCH_COMPLETE',
@@ -162,6 +172,7 @@ agentforce/
 ```
 
 **Research Error**
+
 ```typescript
 {
   type: 'RESEARCH_ERROR',
@@ -172,12 +183,14 @@ agentforce/
 ## 🎯 Usage Examples
 
 ### Basic Research
+
 1. Enter query: "Analyze the rise and fall of Stability AI"
 2. Click "Start Research"
 3. Watch the agent work in real-time
 4. View/download the comprehensive report
 
 ### Deep Research Mode
+
 1. Enter complex query
 2. ✅ Check "Deep Mode (Enhanced Research)"
 3. Click "Start Research"
@@ -188,34 +201,40 @@ agentforce/
 ### File Structure
 
 **`server/index.ts`**
+
 - Express server setup
 - WebSocket server initialization
 - Event listener setup
 - Request handling
 
 **`public/index.html`**
+
 - Semantic HTML structure
 - Accessible form elements
 - Section organization
 
 **`public/styles.css`**
+
 - CSS custom properties (dark theme variables)
 - Responsive design
 - Animation keyframes
 - Component styling
 
 **`public/app.js`**
+
 - WebSocket client connection
 - Event handling
 - DOM manipulation
 - Markdown rendering (basic)
 
 **`lib/ai/graphs/research/eventEmitter.ts`**
+
 - Event emission utilities
 - Action tracking
 - Progress updates
 
 **`lib/ai/graphs/research/graph.ts`**
+
 - Research agent logic (unchanged core logic)
 - Event emission at key steps
 - Progress tracking
@@ -224,17 +243,19 @@ agentforce/
 
 **Change Theme Colors**
 Edit CSS variables in `public/styles.css`:
+
 ```css
 :root {
-  --bg-primary: #0a0e27;      /* Main background */
-  --accent-primary: #6366f1;   /* Primary accent color */
-  --text-primary: #e4e4e7;     /* Primary text */
+  --bg-primary: #0a0e27; /* Main background */
+  --accent-primary: #6366f1; /* Primary accent color */
+  --text-primary: #e4e4e7; /* Primary text */
   /* ... more variables */
 }
 ```
 
 **Adjust Server Port**
 Set in `.env`:
+
 ```bash
 PORT=8080
 ```
@@ -245,22 +266,27 @@ The frontend doesn't change research logic - that's all in `lib/ai/graphs/resear
 ## 🔍 Troubleshooting
 
 ### WebSocket Connection Issues
+
 - **Check Server Status**: Ensure server is running on the correct port
 - **Firewall**: Make sure port 3000 (or custom port) is not blocked
 - **Browser Console**: Check for WebSocket errors in dev tools
 
 ### Missing Environment Variables
+
 ```
 Error: Missing env: OPENROUTER_API_KEY
 ```
+
 **Solution**: Create/update `.env` file with all required API keys
 
 ### UI Not Loading
+
 - **Check Static Files**: Ensure `public/` directory exists
 - **Server Logs**: Check terminal for Express errors
 - **Browser Cache**: Try hard refresh (Ctrl+Shift+R)
 
 ### Research Not Starting
+
 - **API Keys**: Verify all API keys are valid
 - **Network**: Check internet connection for API calls
 - **Browser Console**: Look for JavaScript errors
@@ -268,9 +294,11 @@ Error: Missing env: OPENROUTER_API_KEY
 ## 📝 API Keys Required
 
 1. **OpenRouter** - For LLM calls (GPT, Claude, Mistral, etc.)
+
    - Get at: https://openrouter.ai/
 
 2. **Tavily** - For web search and content extraction
+
    - Get at: https://tavily.com/
 
 3. **Perplexity** - For advanced research queries
@@ -279,16 +307,19 @@ Error: Missing env: OPENROUTER_API_KEY
 ## 🚀 Deployment
 
 ### Local Development
+
 ```bash
 pnpm server:dev
 ```
 
 ### Production
+
 ```bash
 pnpm server
 ```
 
 ### Docker (Future)
+
 ```dockerfile
 FROM node:20-alpine
 WORKDIR /app
@@ -331,6 +362,7 @@ CMD ["pnpm", "server"]
 ## 🤝 Contributing
 
 The frontend is designed to be simple and extensible. Feel free to:
+
 - Add new visualizations
 - Improve the timeline UI
 - Enhance markdown rendering
