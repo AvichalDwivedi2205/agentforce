@@ -6,85 +6,182 @@
   <title>Research in Progress - Deep Research Agent</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;500;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;500;700&family=Press+Start+2P&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <canvas id="neuralNetwork"></canvas>
+  
+  <!-- Holographic Overlay Effects -->
+  <div class="holo-overlay"></div>
+  <div class="scan-lines"></div>
+  
+  <!-- Animated Grid -->
+  <div class="grid-background"></div>
+  
   <div class="container">
-    <!-- Header -->
-    <header class="header">
-      <div class="header-content">
-        <h1 class="title">LYNX</h1>
-        <p class="subtitle">Research in Progress</p>
-      </div>
-      <div class="connection-status" id="connectionStatus">
-        <span class="status-dot"></span>
-        <span class="status-text">Connecting...</span>
-      </div>
-    </header>
-
-    <!-- Query Display Section -->
-    <section class="query-display-section">
-      <div class="query-display">
-        <h3 class="query-label">RESEARCH QUERY</h3>
-        <p class="query-text" id="queryDisplay"></p>
-        <div class="mode-badge" id="modeBadge"></div>
-      </div>
-    </section>
-
-    <!-- Two Panel Layout -->
-    <main class="two-panel-layout" id="mainLayout">
-      <!-- Left Panel - Agent Actions -->
-      <section class="left-panel" id="leftPanel">
-        <div class="panel-header">
-          <h2 class="panel-title">
-            <span class="pulse-dot"></span>
-            Agent Actions
-          </h2>
-          <div class="progress-stats" id="progressStats">
-            <span class="stat">0 sources</span>
-            <span class="stat">0 queries</span>
-            <span class="stat">0 API calls</span>
+    <!-- Enhanced Header with Holographic Effect -->
+    <header class="header-research">
+      <div class="header-content-research">
+        <div class="header-top-row">
+          <div class="logo-section">
+            <div class="logo-hologram">
+              <h1 class="title-research">LYNX</h1>
+              <div class="logo-glitch">LYNX</div>
+              <div class="logo-glitch">LYNX</div>
+            </div>
+            <div class="ai-indicator">
+              <span class="ai-dot"></span>
+              <span class="ai-text">AI RESEARCH ENGINE</span>
+            </div>
+          </div>
+          
+          <div class="system-status">
+            <div class="status-grid">
+              <div class="status-item">
+                <span class="status-label">SYS</span>
+                <span class="status-value" id="systemStatus">ACTIVE</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">NET</span>
+                <div class="connection-status-research" id="connectionStatus">
+                  <span class="status-dot-research"></span>
+                  <span class="status-text-research">SYNC</span>
+                </div>
+              </div>
+              <div class="status-item">
+                <span class="status-label">CPU</span>
+                <div class="cpu-bar">
+                  <div class="cpu-fill" id="cpuFill"></div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         
-        <div class="timeline" id="actionsTimeline">
+        <div class="header-bottom-row">
+          <p class="subtitle-research">
+            <span class="typing-text" id="subtitleText">DEEP NEURAL RESEARCH IN PROGRESS...</span>
+            <span class="cursor-blink">_</span>
+          </p>
+        </div>
+      </div>
+    </header>
+
+    <!-- Enhanced Query Display with Holographic Effect -->
+    <section class="query-display-section-research">
+      <div class="query-display-research">
+        <div class="query-header-bar">
+          <div class="query-icon">🎯</div>
+          <h3 class="query-label-research">TARGET QUERY</h3>
+          <div class="mode-badge-research" id="modeBadge"></div>
+        </div>
+        <div class="query-body">
+          <p class="query-text-research" id="queryDisplay"></p>
+          <div class="query-analytics">
+            <div class="analytics-item">
+              <span class="analytics-icon">⚡</span>
+              <span class="analytics-text" id="queryComplexity">Analyzing...</span>
+            </div>
+            <div class="analytics-item">
+              <span class="analytics-icon">🔍</span>
+              <span class="analytics-text" id="estimatedTime">Estimating time...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Enhanced Two Panel Layout -->
+    <main class="two-panel-layout-research" id="mainLayout">
+      <!-- Left Panel - Agent Actions with Dynamic Visualization -->
+      <section class="left-panel-research" id="leftPanel">
+        <div class="panel-header-research">
+          <div class="panel-title-wrapper">
+            <h2 class="panel-title-research">
+              <span class="pulse-dot-research"></span>
+              <span class="title-glitch-wrapper">
+                <span class="title-main">AGENT ACTIVITY LOG</span>
+                <span class="title-glitch">AGENT ACTIVITY LOG</span>
+                <span class="title-glitch">AGENT ACTIVITY LOG</span>
+              </span>
+            </h2>
+          </div>
+          
+          <div class="progress-stats-research" id="progressStats">
+            <div class="stat-card">
+              <div class="stat-icon">📚</div>
+              <div class="stat-content">
+                <span class="stat-value" id="sourcesCount">0</span>
+                <span class="stat-label">SOURCES</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">🔎</div>
+              <div class="stat-content">
+                <span class="stat-value" id="queriesCount">0</span>
+                <span class="stat-label">QUERIES</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">⚡</div>
+              <div class="stat-content">
+                <span class="stat-value" id="apiCallsCount">0</span>
+                <span class="stat-label">API CALLS</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Activity Visualization -->
+        <div class="activity-viz">
+          <canvas id="activityGraph" width="100%" height="80"></canvas>
+        </div>
+        
+        <div class="timeline-research" id="actionsTimeline">
           <!-- Actions will be dynamically added here -->
         </div>
       </section>
 
-      <!-- Right Panel - Research Results (Hidden initially) -->
-      <section class="right-panel" id="rightPanel" style="display: none;">
-        <div class="panel-header">
-          <h2 class="panel-title">Research Report</h2>
-          <div class="result-actions">
-            <button id="copyMarkdownBtn" class="btn-icon" title="Copy Markdown">
-              📋
+      <!-- Right Panel - Research Results with Enhanced UI -->
+      <section class="right-panel-research" id="rightPanel" style="display: none;">
+        <div class="panel-header-research">
+          <h2 class="panel-title-research">
+            <span class="complete-icon">✓</span>
+            RESEARCH REPORT
+          </h2>
+          <div class="result-actions-research">
+            <button id="copyMarkdownBtn" class="btn-icon-research" title="Copy Markdown">
+              <span class="btn-icon-inner">📋</span>
+              <span class="btn-label">COPY</span>
             </button>
-            <button id="downloadMarkdownBtn" class="btn-icon" title="Download">
-              ⬇️
+            <button id="downloadMarkdownBtn" class="btn-icon-research" title="Download">
+              <span class="btn-icon-inner">⬇️</span>
+              <span class="btn-label">DOWNLOAD</span>
             </button>
-            <button id="generatePresentationBtn" class="btn-icon" title="Generate Presentation">
-              🎯
+            <button id="generatePresentationBtn" class="btn-icon-research" title="Generate Presentation">
+              <span class="btn-icon-inner">🎯</span>
+              <span class="btn-label">PRESENT</span>
             </button>
-            <button id="viewPresentationsBtn" class="btn-icon" title="View All Presentations">
-              📊
+            <button id="viewPresentationsBtn" class="btn-icon-research" title="View All Presentations">
+              <span class="btn-icon-inner">📊</span>
+              <span class="btn-label">VIEW ALL</span>
             </button>
-            <button id="newResearchBtn" class="btn-icon" title="New Research">
-              ➕
+            <button id="newResearchBtn" class="btn-icon-research" title="New Research">
+              <span class="btn-icon-inner">➕</span>
+              <span class="btn-label">NEW</span>
             </button>
           </div>
         </div>
         
-        <div class="report-preview" id="reportPreview">
+        <div class="report-preview-research" id="reportPreview">
           <!-- Report will be rendered here -->
         </div>
         
         <!-- Presentation Status -->
-        <div class="presentation-status" id="presentationStatus" style="display: none;">
-          <div class="status-message" id="presentationStatusMessage"></div>
-          <button id="viewPresentationBtn" class="btn-primary" style="display: none;">
+        <div class="presentation-status-research" id="presentationStatus" style="display: none;">
+          <div class="status-message-research" id="presentationStatusMessage"></div>
+          <button id="viewPresentationBtn" class="btn-primary-research" style="display: none;">
             View Presentation
           </button>
         </div>

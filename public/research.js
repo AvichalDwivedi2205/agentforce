@@ -55,6 +55,34 @@ let neuralNetworkColor = {
   isResearching: true
 };
 
+// Target blue color for completion
+const blueColor = { r: 0, g: 200, b: 255 };
+
+// Transition neural network to blue
+function transitionToBlue() {
+  const duration = 2000; // 2 seconds
+  const startTime = Date.now();
+  const startColor = { ...neuralNetworkColor };
+  
+  function animate() {
+    const elapsed = Date.now() - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    
+    // Ease out cubic
+    const easeProgress = 1 - Math.pow(1 - progress, 3);
+    
+    neuralNetworkColor.r = Math.round(startColor.r + (blueColor.r - startColor.r) * easeProgress);
+    neuralNetworkColor.g = Math.round(startColor.g + (blueColor.g - startColor.g) * easeProgress);
+    neuralNetworkColor.b = Math.round(startColor.b + (blueColor.b - startColor.b) * easeProgress);
+    
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    }
+  }
+  
+  animate();
+}
+
 // Animation loop
 function animate() {
   ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
@@ -130,12 +158,122 @@ let stats = {
   apiCalls: 0
 };
 
+// Activity Graph State
+let activityData = [];
+let maxActivityPoints = 50;
+
 // Display query
 if (query) {
   queryDisplay.textContent = query;
-  modeBadge.textContent = deepMode ? 'DEEP MODE' : 'STANDARD MODE';
-  modeBadge.className = `mode-badge ${deepMode ? 'deep' : 'standard'}`;
+  const modeBadgeElement = document.getElementById('modeBadge');
+  if (modeBadgeElement) {
+    modeBadgeElement.textContent = deepMode ? 'DEEP MODE' : 'STANDARD MODE';
+    modeBadgeElement.className = deepMode ? 'mode-badge-research deep' : 'mode-badge-research standard';
+  }
+  
+  // Update analytics
+  setTimeout(() => {
+    const complexityEl = document.getElementById('queryComplexity');
+    const timeEl = document.getElementById('estimatedTime');
+    if (complexityEl) complexityEl.textContent = deepMode ? 'High Complexity' : 'Standard';
+    if (timeEl) timeEl.textContent = deepMode ? 'Est. 2-3 min' : 'Est. 1-2 min';
+  }, 500);
 }
+
+// Initialize Activity Graph
+function initActivityGraph() {
+  const canvas = document.getElementById('activityGraph');
+  if (!canvas) return;
+  
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth;
+  canvas.height = 80;
+  
+  // Initialize with zeros
+  for (let i = 0; i < maxActivityPoints; i++) {
+    activityData.push(0);
+  }
+  
+  drawActivityGraph();
+}
+
+// Draw Activity Graph
+function drawActivityGraph() {
+  const canvas = document.getElementById('activityGraph');
+  if (!canvas) return;
+  
+  const ctx = canvas.getContext('2d');
+  const width = canvas.width;
+  const height = canvas.height;
+  
+  // Clear canvas
+  ctx.clearRect(0, 0, width, height);
+  
+  // Draw grid
+  ctx.strokeStyle = 'rgba(255, 20, 60, 0.1)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 5; i++) {
+    const y = (height / 4) * i;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(width, y);
+    ctx.stroke();
+  }
+  
+  // Draw activity line
+  const pointWidth = width / maxActivityPoints;
+  const maxValue = Math.max(...activityData, 10);
+  
+  ctx.beginPath();
+  ctx.strokeStyle = 'rgba(255, 20, 60, 0.8)';
+  ctx.lineWidth = 2;
+  ctx.shadowBlur = 10;
+  ctx.shadowColor = 'rgba(255, 20, 60, 0.6)';
+  
+  for (let i = 0; i < activityData.length; i++) {
+    const x = i * pointWidth;
+    const y = height - (activityData[i] / maxValue) * height;
+    
+    if (i === 0) {
+      ctx.moveTo(x, y);
+    } else {
+      ctx.lineTo(x, y);
+    }
+  }
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+  
+  // Fill area under line
+  ctx.lineTo(width, height);
+  ctx.lineTo(0, height);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(255, 20, 60, 0.15)';
+  ctx.fill();
+}
+
+// Update Activity Graph
+function updateActivityGraph(value) {
+  activityData.shift();
+  activityData.push(value);
+  drawActivityGraph();
+}
+
+// Animate CPU usage
+function animateCPU() {
+  const cpuFill = document.getElementById('cpuFill');
+  if (cpuFill) {
+    setInterval(() => {
+      const usage = 30 + Math.random() * 55;
+      cpuFill.style.width = usage + '%';
+    }, 2000);
+  }
+}
+
+// Initialize on load
+setTimeout(() => {
+  initActivityGraph();
+  animateCPU();
+}, 100);
 
 // Initialize WebSocket connection
 function connectWebSocket() {
@@ -186,14 +324,45 @@ function connectWebSocket() {
 
 // Update connection status
 function updateConnectionStatus(status) {
+  const statusDotResearch = document.querySelector('.status-dot-research');
+  const statusTextResearch = document.querySelector('.status-text-research');
+  const systemStatus = document.getElementById('systemStatus');
+  
   if (status === 'connected') {
-    statusDot.classList.add('connected');
-    statusDot.classList.remove('disconnected');
-    statusText.textContent = 'Connected';
+    if (statusDot) {
+      statusDot.classList.add('connected');
+      statusDot.classList.remove('disconnected');
+      statusText.textContent = 'Connected';
+    }
+    if (statusTextResearch) {
+      statusTextResearch.textContent = 'SYNC';
+      statusTextResearch.style.color = '#00ff88';
+    }
+    if (statusDotResearch) {
+      statusDotResearch.style.background = '#00ff88';
+      statusDotResearch.style.boxShadow = '0 0 8px rgba(0, 255, 136, 0.8)';
+    }
+    if (systemStatus) {
+      systemStatus.textContent = 'ACTIVE';
+    }
   } else {
-    statusDot.classList.remove('connected');
-    statusDot.classList.add('disconnected');
-    statusText.textContent = 'Disconnected';
+    if (statusDot) {
+      statusDot.classList.remove('connected');
+      statusDot.classList.add('disconnected');
+      statusText.textContent = 'Disconnected';
+    }
+    if (statusTextResearch) {
+      statusTextResearch.textContent = 'OFFLINE';
+      statusTextResearch.style.color = '#ff143c';
+    }
+    if (statusDotResearch) {
+      statusDotResearch.style.background = '#ff143c';
+      statusDotResearch.style.boxShadow = '0 0 8px rgba(255, 20, 60, 0.8)';
+    }
+    if (systemStatus) {
+      systemStatus.textContent = 'ERROR';
+      systemStatus.style.color = '#ff143c';
+    }
   }
 }
 
@@ -292,11 +461,20 @@ function onResearchComplete(data) {
   renderMarkdown(data.markdown);
   
   // Show right panel with animation
-  mainLayout.classList.add('two-panels');
-  rightPanel.style.display = 'block';
+  const layout = mainLayout || document.getElementById('mainLayout');
+  if (layout) {
+    layout.classList.add('two-panels');
+  }
+  if (rightPanel) {
+    rightPanel.style.display = 'block';
+  }
   
-  // Keep neural network red even after research completes
-  neuralNetworkColor.isResearching = true;
+  // Transition neural network to blue when research completes
+  neuralNetworkColor.isResearching = false;
+  transitionToBlue();
+  
+  // Add completion visual effects
+  document.body.classList.add('research-complete');
 }
 
 function onResearchError(data) {
@@ -341,11 +519,27 @@ function addTimelineItem({ title, description, time, status = 'searching', meta 
 }
 
 function updateStats() {
-  progressStats.innerHTML = `
-    <span class="stat">${stats.sources} sources</span>
-    <span class="stat">${stats.queries} queries</span>
-    <span class="stat">${stats.apiCalls} API calls</span>
-  `;
+  // Update stat cards
+  const sourcesCount = document.getElementById('sourcesCount');
+  const queriesCount = document.getElementById('queriesCount');
+  const apiCallsCount = document.getElementById('apiCallsCount');
+  
+  if (sourcesCount) sourcesCount.textContent = stats.sources;
+  if (queriesCount) queriesCount.textContent = stats.queries;
+  if (apiCallsCount) apiCallsCount.textContent = stats.apiCalls;
+  
+  // Update activity graph
+  const activityValue = stats.queries + stats.apiCalls;
+  updateActivityGraph(activityValue);
+  
+  // Fallback for old layout
+  if (progressStats && !sourcesCount) {
+    progressStats.innerHTML = `
+      <span class="stat">${stats.sources} sources</span>
+      <span class="stat">${stats.queries} queries</span>
+      <span class="stat">${stats.apiCalls} API calls</span>
+    `;
+  }
 }
 
 function renderMarkdown(markdown) {
