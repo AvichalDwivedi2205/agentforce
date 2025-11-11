@@ -106,10 +106,11 @@ const statusDot = connectionStatus.querySelector('.status-dot');
 const statusText = connectionStatus.querySelector('.status-text');
 const queryDisplay = document.getElementById('queryDisplay');
 const modeBadge = document.getElementById('modeBadge');
-const actionsSection = document.getElementById('actionsSection');
+const mainLayout = document.getElementById('mainLayout');
+const leftPanel = document.getElementById('leftPanel');
+const rightPanel = document.getElementById('rightPanel');
 const actionsTimeline = document.getElementById('actionsTimeline');
 const progressStats = document.getElementById('progressStats');
-const resultsSection = document.getElementById('resultsSection');
 const reportPreview = document.getElementById('reportPreview');
 const copyMarkdownBtn = document.getElementById('copyMarkdownBtn');
 const downloadMarkdownBtn = document.getElementById('downloadMarkdownBtn');
@@ -290,8 +291,9 @@ function onResearchComplete(data) {
   currentMarkdown = data.markdown;
   renderMarkdown(data.markdown);
   
-  resultsSection.style.display = 'block';
-  resultsSection.scrollIntoView({ behavior: 'smooth' });
+  // Show right panel with animation
+  mainLayout.classList.add('two-panels');
+  rightPanel.style.display = 'block';
   
   // Keep neural network red even after research completes
   neuralNetworkColor.isResearching = true;

@@ -24,21 +24,21 @@
       </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="main-content">
-      <!-- Query Display Section -->
-      <section class="query-display-section">
-        <div class="query-display">
-          <h3 class="query-label">RESEARCH QUERY</h3>
-          <p class="query-text" id="queryDisplay"></p>
-          <div class="mode-badge" id="modeBadge"></div>
-        </div>
-      </section>
+    <!-- Query Display Section -->
+    <section class="query-display-section">
+      <div class="query-display">
+        <h3 class="query-label">RESEARCH QUERY</h3>
+        <p class="query-text" id="queryDisplay"></p>
+        <div class="mode-badge" id="modeBadge"></div>
+      </div>
+    </section>
 
-      <!-- Agent Actions Section -->
-      <section class="actions-section" id="actionsSection">
-        <div class="section-header">
-          <h2 class="section-title">
+    <!-- Two Panel Layout -->
+    <main class="two-panel-layout" id="mainLayout">
+      <!-- Left Panel - Agent Actions -->
+      <section class="left-panel" id="leftPanel">
+        <div class="panel-header">
+          <h2 class="panel-title">
             <span class="pulse-dot"></span>
             Agent Actions
           </h2>
@@ -54,25 +54,25 @@
         </div>
       </section>
 
-      <!-- Results Section -->
-      <section class="results-section" id="resultsSection" style="display: none;">
-        <div class="section-header">
-          <h2 class="section-title">Research Report</h2>
+      <!-- Right Panel - Research Results (Hidden initially) -->
+      <section class="right-panel" id="rightPanel" style="display: none;">
+        <div class="panel-header">
+          <h2 class="panel-title">Research Report</h2>
           <div class="result-actions">
-            <button id="copyMarkdownBtn" class="btn-secondary">
-              Copy Markdown
+            <button id="copyMarkdownBtn" class="btn-icon" title="Copy Markdown">
+              📋
             </button>
-            <button id="downloadMarkdownBtn" class="btn-secondary">
-              Download
+            <button id="downloadMarkdownBtn" class="btn-icon" title="Download">
+              ⬇️
             </button>
-            <button id="generatePresentationBtn" class="btn-primary">
-              Generate Presentation
+            <button id="generatePresentationBtn" class="btn-icon" title="Generate Presentation">
+              🎯
             </button>
-            <button id="viewPresentationsBtn" class="btn-secondary">
-              View All Presentations
+            <button id="viewPresentationsBtn" class="btn-icon" title="View All Presentations">
+              📊
             </button>
-            <button id="newResearchBtn" class="btn-secondary">
-              New Research
+            <button id="newResearchBtn" class="btn-icon" title="New Research">
+              ➕
             </button>
           </div>
         </div>

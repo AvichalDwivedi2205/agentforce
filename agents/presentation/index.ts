@@ -7,19 +7,24 @@ const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
 
 // Helper function to generate presentation from research markdown
 export async function generatePresentation(researchContent: string): Promise<string> {
-  try {
-    console.log('Generating presentation with Gemini 2.5 Flash...');
-    
-    // Get the Gemini model
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-2.0-flash-exp",
-      generationConfig: {
-        temperature: 0.8, // Higher creativity for rich visual design
-        maxOutputTokens: 16000, // Increased for content-rich presentations
-        topP: 0.95,
-        topK: 40,
-      }
-    });
+  const MAX_RETRIES = 3;
+  let lastError: Error | null = null;
+  
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      console.log(`Generating presentation with Gemini 2.5 Flash (Attempt ${attempt}/${MAX_RETRIES})...`);
+      
+      // Get the Gemini model with strict instructions
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-2.0-flash-exp",
+        generationConfig: {
+          temperature: 0.7, // Slightly lower for more consistent output
+          maxOutputTokens: 16000,
+          topP: 0.95,
+          topK: 40,
+        },
+        systemInstruction: "You are an HTML generator. You MUST return ONLY valid HTML code. Start with <!DOCTYPE html> and end with </html>. NO explanations, NO markdown formatting, NO code blocks, NO text before or after the HTML. Just pure HTML code."
+      });
 
     const prompt = `${PRESENTATION_SYSTEM_PROMPT}
 
@@ -159,36 +164,86 @@ ${researchContent}`;
     const response = await result.response;
     let html = response.text();
     
-    console.log('Gemini response received, length:', html.length);
+    console.log('Gemini raw response received, length:', html.length);
     
-    // Clean up any markdown code blocks if present
-    html = html.replace(/```html\n?/g, '').replace(/```\n?/g, '').trim();
+    // Aggressive cleaning of markdown artifacts
+    html = html.trim();
     
-    // Remove any leading/trailing explanatory text
+    // Remove markdown code blocks
+    html = html.replace(/^```html\s*/i, '');
+    html = html.replace(/^```\s*/i, '');
+    html = html.replace(/\s*```\s*$/g, '');
+    
+    // Remove any text before DOCTYPE
     const doctypeIndex = html.indexOf('<!DOCTYPE');
     if (doctypeIndex > 0) {
+      console.log(`Removing ${doctypeIndex} characters before DOCTYPE`);
       html = html.substring(doctypeIndex);
+    } else if (doctypeIndex === -1) {
+      // Try to find <html> tag if DOCTYPE is missing
+      const htmlStartIndex = html.toLowerCase().indexOf('<html');
+      if (htmlStartIndex > 0) {
+        console.log(`No DOCTYPE found, starting from <html> tag`);
+        html = '<!DOCTYPE html>\n' + html.substring(htmlStartIndex);
+      } else if (htmlStartIndex === -1) {
+        console.error('No valid HTML structure found in response');
+        console.error('First 500 chars:', html.substring(0, 500));
+        throw new Error('Generated content does not contain valid HTML structure');
+      }
     }
     
     // Remove any text after closing </html>
     const htmlEndIndex = html.lastIndexOf('</html>');
     if (htmlEndIndex > 0) {
-      html = html.substring(0, htmlEndIndex + 7);
+      const afterHtml = html.substring(htmlEndIndex + 7).trim();
+      if (afterHtml.length > 0) {
+        console.log(`Removing ${afterHtml.length} characters after </html>`);
+        html = html.substring(0, htmlEndIndex + 7);
+      }
+    } else {
+      console.error('No closing </html> tag found');
+      console.error('Last 500 chars:', html.substring(Math.max(0, html.length - 500)));
+      throw new Error('Generated content does not have closing </html> tag');
     }
     
-    // Validate HTML structure
-    if (!html.includes('<!DOCTYPE html>') || !html.includes('</html>')) {
-      console.error('Invalid HTML generated');
+    // Final validation
+    html = html.trim();
+    
+    const hasDoctype = html.toLowerCase().includes('<!doctype html>');
+    const hasHtmlStart = html.toLowerCase().includes('<html');
+    const hasHtmlEnd = html.toLowerCase().includes('</html>');
+    const hasHead = html.toLowerCase().includes('<head>');
+    const hasBody = html.toLowerCase().includes('<body>');
+    
+    if (!hasDoctype || !hasHtmlStart || !hasHtmlEnd || !hasHead || !hasBody) {
+      console.error('HTML validation failed:');
+      console.error(`- Has DOCTYPE: ${hasDoctype}`);
+      console.error(`- Has <html>: ${hasHtmlStart}`);
+      console.error(`- Has </html>: ${hasHtmlEnd}`);
+      console.error(`- Has <head>: ${hasHead}`);
+      console.error(`- Has <body>: ${hasBody}`);
+      console.error('First 1000 chars:', html.substring(0, 1000));
       throw new Error('Generated content is not a valid HTML document');
     }
     
-    console.log('Presentation generated successfully');
-    return html;
-    
-  } catch (error: any) {
-    console.error('Gemini API error:', error);
-    throw new Error(`Failed to generate presentation: ${error.message}`);
+      console.log('✓ Presentation HTML validated successfully');
+      console.log(`✓ Final HTML length: ${html.length} characters`);
+      return html;
+      
+    } catch (error: any) {
+      console.error(`Attempt ${attempt} failed:`, error.message);
+      lastError = error;
+      
+      if (attempt < MAX_RETRIES) {
+        console.log(`Retrying in 2 seconds...`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
   }
+  
+  // All retries failed
+  console.error('All generation attempts failed');
+  throw new Error(`Failed to generate presentation after ${MAX_RETRIES} attempts: ${lastError?.message}`);
 }
 
 // Legacy exports for compatibility

@@ -136,25 +136,53 @@ Generate a COMPLETE, SELF-CONTAINED HTML file with:
 - **Fonts**: Sans-serif (Arial, Helvetica), monospace for data
 - **Animations**: Fade-in, slide-up on navigation
 
-## Output Rules
-- Return ONLY HTML code (start with DOCTYPE html, end with closing html tag)
-- NO markdown code blocks or formatting
-- NO explanations or comments outside the HTML
-- Production-ready, fully functional presentation
+## CRITICAL OUTPUT REQUIREMENTS - READ CAREFULLY
 
-## Technical Requirements
-You must generate a COMPLETE, SELF-CONTAINED HTML file that includes:
-1. Full HTML5 document structure
-2. All CSS in a <style> tag (no external stylesheets)
-3. All JavaScript in a <script> tag (no external scripts)
-4. Navigation controls (arrows, keyboard support)
-5. Responsive design with media queries
-6. Modern web features (flexbox, grid, CSS animations)
+⚠️ YOU MUST FOLLOW THESE RULES EXACTLY ⚠️
 
-## Output Format
-Return ONLY the complete HTML code, starting with <!DOCTYPE html> and ending with </html>.
-Do NOT include any explanations, markdown code blocks, or additional text.
-The HTML should be production-ready and work immediately when saved as an .html file.
+1. RETURN ONLY HTML CODE - Nothing else!
+2. START WITH: <!DOCTYPE html>
+3. END WITH: </html>
+4. NO MARKDOWN - Do not wrap in code blocks or backticks
+5. NO EXPLANATIONS - No text before or after the HTML
+6. NO COMMENTS - Outside the HTML document
+7. SINGLE OUTPUT - One complete HTML document only
+
+## What Your Response Should Look Like:
+Your response must start with <!DOCTYPE html> and end with </html>
+Include complete head section with meta tags, title, and style tags
+Include complete body section with all slides
+Include script tags for interactivity before closing body tag
+
+❌ DO NOT DO THIS:
+- "Here is your presentation..."
+- Wrapping HTML in markdown code blocks
+- "Let me create..."
+- Any text before <!DOCTYPE html>
+- Any text after </html>
+- Explanations or descriptions
+
+✅ DO THIS:
+- Start immediately with <!DOCTYPE html>
+- End immediately with </html>
+- Include ALL CSS in style tags inside head
+- Include ALL JavaScript in script tags before closing body
+- Make it self-contained and production-ready
+- No external files or dependencies
+
+## Technical Structure Required:
+1. Full HTML5 document (<!DOCTYPE html>)
+2. Complete head section with meta tags, title, styles
+3. Complete body section with all slides and navigation
+4. All CSS in style tag (no external files)
+5. All JavaScript in script tag (no external files)
+6. Keyboard navigation (arrows, space, home, end)
+7. Responsive design with media queries
+8. Smooth transitions and animations
+
+YOUR ENTIRE RESPONSE MUST BE VALID HTML THAT CAN BE SAVED DIRECTLY AS A .HTML FILE AND WORK IMMEDIATELY.
+DO NOT ADD ANY TEXT BEFORE OR AFTER THE HTML DOCUMENT.
+START WITH <!DOCTYPE html> AND END WITH </html> - NOTHING ELSE!
 
 ## Style Guidelines
 - Modern, professional design
