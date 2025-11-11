@@ -354,6 +354,7 @@ body {
   max-width: 1800px;
   margin: 0 auto;
   display: flex;
+  flex-direction: column;
   gap: 1.5rem;
   padding: 0 2rem 2rem 2rem;
   position: relative;
@@ -368,18 +369,18 @@ body {
 }
 
 .two-panel-layout-research.two-panels .left-panel-research {
-  width: 50%;
+  width: 100%;
   max-width: none;
 }
 
 .two-panel-layout-research.two-panels .right-panel-research {
-  width: 50%;
+  width: 100%;
   display: block !important;
 }
 
 /* Enhanced Left Panel - Agent Actions */
 .left-panel-research {
-  flex: 1;
+  width: 100%;
   background: rgba(10, 10, 10, 0.85);
   backdrop-filter: blur(50px);
   -webkit-backdrop-filter: blur(50px);
@@ -394,6 +395,7 @@ body {
   flex-direction: column;
   transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  max-height: 600px;
 }
 
 .left-panel-research::before {
@@ -414,7 +416,7 @@ body {
 
 /* Enhanced Right Panel - Research Results */
 .right-panel-research {
-  flex: 1;
+  width: 100%;
   background: rgba(10, 10, 10, 0.85);
   backdrop-filter: blur(50px);
   -webkit-backdrop-filter: blur(50px);
@@ -427,8 +429,9 @@ body {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  animation: slideInFromRight 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: slideInFromBottom 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  max-height: 800px;
 }
 
 .right-panel-research::before {
@@ -450,6 +453,17 @@ body {
   to {
     opacity: 1;
     transform: translateX(0);
+  }
+}
+
+@keyframes slideInFromBottom {
+  from {
+    opacity: 0;
+    transform: translateY(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
