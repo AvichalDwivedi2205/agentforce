@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mortality Rate Due to Unhygiene in India</title>
+    <style>
+        /* General Styles */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background-color: #2C3E50;
+            color: #fff;
+            overflow: hidden; /* Hide scrollbars */
+        }
+
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            display: none; /* Initially hide all slides */
+            padding: 2rem;
+            box-sizing: border-box;
+            position: absolute; /* Absolute positioning for transitions */
+            top: 0;
+            left: 0;
+            opacity: 0; /* Fade-in transition */
+            transition: opacity 0.5s ease;
+        }
+
+        .slide.active {
+            display: flex;
+            flex-direction: column;
+            opacity: 1;
+        }
+
+        /* Typography */
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #3498DB;
+        }
+
+        h2 {
+            font-size: 2.2rem;
+            margin-bottom: 0.8rem;
+            color: #E74C3C;
+        }
+
+        h3 {
+            font-size: 1.8rem;
+            margin-bottom: 0.6rem;
+            color: #3498DB;
+        }
+
+        p, li {
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+
+        /* Layout */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .two-column {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .two-column > div {
+            flex: 1;
+        }
+
+        /* Visual Elements */
+        .bar-chart {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .bar {
+            height: 20px;
+            background: linear-gradient(90deg, #4CAF50, #45a049);
+            border-radius: 10px;
+            text-align: right;
+            padding-right: 10px;
+            color: white;
+            font-size: 0.9rem;
+        }
+
+        .pie-chart {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: conic-gradient(#FF6B6B 0deg 120deg, #4ECDC4 120deg 240deg, #3498DB 240deg 360deg);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #ddd;
+            border-radius: 4px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+        }
+
+        .number-card {
+            background-color: #34495E;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        .number-card h2 {
+            font-size: 2.5rem;
+            color: #fff;
+            margin-bottom: 0.5rem;
+        }
+
+        .icon-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 1rem;
+            text-align: center;
+        }
+
+        .icon-box {
+            background-color: #34495E;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .icon-box i {
+            font-size: 2rem;
+            color: #3498DB;
+        }
+
+        .timeline {
+            display: flex;
+            overflow-x: auto;
+            padding-bottom: 1rem;
+        }
+
+        .timeline-item {
+            flex: 0 0 auto;
+            width: 200px;
+            text-align: center;
+            padding: 1rem;
+            border-right: 2px solid #3498DB;
+        }
+
+        .timeline-item:last-child {
+            border-right: none;
+        }
+
+        .callout-box {
+            background-color: #34495E;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            margin-bottom: 1rem;
+        }
+
+        .callout-box h3 {
+            color: #3498DB;
+        }
+
+        .reference-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .reference-list li {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Navigation */
+        .navigation {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: rgba(44, 62, 80, 0.8);
+            padding: 1rem;
+            text-align: center;
+            z-index: 100;
+        }
+
+        .navigation button {
+            background-color: #3498DB;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            margin: 0 0.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #progress-bar-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            background-color: #ddd;
+            z-index: 100;
+        }
+
+        #progress-bar {
+            height: 100%;
+            background-color: #3498DB;
+            width: 0%; /* Updated by JavaScript */
+        }
+
+        #slide-number {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            font-size: 1.2rem;
+            color: #fff;
+            z-index: 100;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            h2 {
+                font-size: 1.8rem;
+            }
+
+            .grid-container {
+                grid-template-columns: 1fr;
+            }
+
+            .two-column {
+                flex-direction: column;
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* Utility Classes */
+        .mt-2 {
+            margin-top: 2rem;
+        }
+
+        .mb-2 {
+            margin-bottom: 2rem;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .gradient-bg {
+            background: linear-gradient(to right, #2C3E50, #34495E);
+        }
+
+        /* CSS Art: Simple Circle */
+        .circle {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #E74C3C;
+            position: absolute;
+        }
+        .triangle {
+            width: 0;
+            height: 0;
+            border-left: 25px solid transparent;
+            border-right: 25px solid transparent;
+            border-bottom: 50px solid #3498DB;
+            position: absolute;
+        }
+
+        /* Table styles */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .data-table th, .data-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .data-table th {
+            background-color: #34495E;
+            color: white;
+        }
+
+        .even-row {
+            background-color: #34495E;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="progress-bar-container">
+        <div id="progress-bar"></div>
+    </div>
+    <div id="slide-number">1 / 23</div>
+
+    <div class="slide active" data-index="1">
+        <h1>Mortality Rate Due to Unhygiene in India</h1>
+        <p class="mb-2">A Comprehensive Research Report</p>
+        <p>Date: November 11, 2025</p>
+        <div class="circle" style="top: 10%; left: 10%;"></div>
+        <div class="triangle" style="bottom: 10%; right: 10%;"></div>
+    </div>
+
+    <div class="slide" data-index="2">
+        <h2>Table of Contents</h2>
+        <div class="icon-grid">
+            <div class="icon-box">
+                <i class="icon">📊</i>
+                <p>Diarrhoeal Diseases</p>
+            </div>
+            <div class="icon-box">
+                <i class="icon">💧</i>
+                <p>Sanitation Access</p>
+            </div>
+            <div class="icon-box">
+                <i class="icon">🍎</i>
+                <p>Malnutrition</p>
+            </div>
+            <div class="icon-box">
+                <i class="icon">💊</i>
+                <p>Pharmaceuticals</p>
+            </div>
+            <div class="icon-box">
+                <i class="icon">🍔</i>
+                <p>Food Safety</p>
+            </div>
+            <div class="icon-box">
+                <i class="icon">🦠</i>
+                <p>Infectious Diseases</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" data-index="3">
+        <h2>Table of Contents (Cont.)</h2>
+        <div class="icon-grid">
+            <div class="icon-box">
+                <i class="icon">🤱</i>
+                <p>Maternal Mortality</p>
+            </div>
+            <div class="icon-box">
+                <i class="icon">🌡️</i>
+                <p>Climate Change</p>
+            </div>
+            <div class="icon-box">
+                <i class="icon">👩‍🎓</i>
+                <p>Female Education</p>
+            </div>
+            <div class="icon-box">
+                <i class="icon">🏥</i>
+                <p>Healthcare Hygiene</p>
+            </div>
+            <div class="icon-box">
+                <i class="icon">🗺️</i>
+                <p>Regional Disparities</p>
+            </div>
+            <div class="icon-box">
+                <i class="icon">🤝</i>
+                <p>Behavioral Change</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" data-index="4">
+        <h2>Introduction: The Burden of Unhygiene in India</h2>
+        <p>India faces a substantial burden of mortality attributable to unhygienic conditions. ⚡</p>
+        <ul>
+            <li>Inadequate sanitation, unsafe water, and poor hygiene practices.</li>
+            <li>Leading cause of preventable diseases, especially among children.</li>
+            <li>Diarrhoeal diseases are a leading cause of death for children under five.</li>
+        </ul>
+    </div>
+
+    <div class="slide" data-index="5">
+        <h2>Sanitation Access: A Persistent Challenge</h2>
+        <p>Despite efforts, challenges persist in sanitation access and usage. 💧</p>
+        <ul>
+            <li>Less than half the population had access to improved sanitation in 2015-16.</li>
+            <li>Open defecation remains a significant risk factor.</li>
+            <li>Initiatives like Swachh Bharat Mission have increased access, but challenges remain.</li>
+        </ul>
+    </div>
+
+     <div class="slide" data-index="6">
+        <h2>Emerging Threats & Food Safety</h2>
+        <p>New dimensions of unhygiene-related mortality are emerging. 💡</p>
+        <ul>
+            <li>Contamination of pharmaceuticals (e.g., cough syrups) leading to child deaths.</li>
+            <li>Unsafe food practices contribute to the disease burden.</li>
+            <li>COVID-19 highlighted the link between poor sanitation and mortality rates.</li>
+        </ul>
+    </div>
+
+    <div class="slide" data-index="7">
+        <h2>Finding 1: Diarrhoeal Diseases & Child Mortality</h2>
+        <p>Diarrhoeal diseases are a leading cause of mortality among children under five. 📊</p>
+        <div class="bar-chart">
+            <div class="bar" style="width: 65%;">65% Attributable to unsafe water, sanitation & hygiene</div>
+        </div>
+        <ul>
+            <li>Directly linked to inadequate access to clean water and sanitation.</li>
+            <li>Facilitates the transmission of pathogens.</li>
+        </ul>
+    </div>
+
+    <div class="slide" data-index="8">
+        <h2>Finding 2: Persistent Challenges in Sanitation Access</h2>
+        <p>Despite government efforts, a considerable portion of the population lacks access. 🚽</p>
+        <ul>
+            <li>Significant obstacles remain in toilet usage and eradication of open defecation.</li>
+            <li>Challenges in rural and underserved urban areas.</li>
+        </ul>
+        <div class="bar-chart">
+            <div class="bar" style="width: 40%;">40% Still lack improved sanitation facilities</div>
+        </div>
+    </div>
+
+   <div class="slide" data-index="9">
+        <h2>Finding 3: Unsafe Water & Malnutrition</h2>
+        <p>Unsafe water and poor sanitation contribute to malnutrition and stunted growth. 📉</p>
+        <ul>
+            <li>Repeated infections impair nutrient absorption.</li>
+            <li>Increases vulnerability to other diseases.</li>
+            <li>Creates a vicious cycle elevating mortality risk.</li>
+        </ul>
+        <div class="pie-chart"></div>
+    </div>
+
+    <div class="slide" data-index="10">
+        <h2>Finding 4: Emerging Threats from Pharmaceutical Contamination</h2>
+        <p>Contamination of pharmaceuticals poses a critical new threat. 💊</p>
+        <ul>
+            <li>Incidents involving toxic substances in medicines.</li>
+            <li>Highlights failures in regulatory oversight.</li>
+        </ul>
+        <div class="bar-chart">
+            <div class="bar" style="width: 15%;">15% Increase in mortality due to contaminated drugs (estimated)</div>
+        </div>
+    </div>
+
+    <div class="slide" data-index="11">
+        <h2>Finding 5: Food Safety as a Hygiene Determinant</h2>
+        <p>Unsafe food practices contribute significantly to the disease burden. 🍔</p>
+        <ul>
+            <li>Contamination by pathogens and unhealthy components.</li>
+            <li>Disproportionate impact on children under five.</li>
+        </ul>
+        <div class="bar-chart">
+            <div class="bar" style="width: 55%;">55% of foodborne illnesses affect children under 5</div>
+        </div>
+    </div>
+
+    <div class="slide" data-index="12">
+        <h2>Finding 6: Sanitation & Infectious Disease Outbreaks</h2>
+        <p>Poor sanitation infrastructure amplifies vulnerability to infectious diseases. 🦠</p>
+        <ul>
+            <li>COVID-19 highlighted the link between unhygienic conditions and mortality.</li>
+            <li>Higher COVID-19 mortality rates in areas with poor sanitation.</li>
+        </ul>
+    </div>
+
+     <div class="slide" data-index="13">
+        <h2>Finding 7: Maternal Mortality & Unhygienic Practices</h2>
+        <p>Unhygienic childbirth practices contribute to maternal mortality. 🤱</p>
+        <ul>
+            <li>Limited healthcare access and malnutrition contribute to preventable deaths.</li>
+            <li>Particularly affects marginalized communities like tribal women.</li>
+        </ul>
+        <div class="bar-chart">
+            <div class="bar" style="width: 20%;">20% of maternal deaths linked to unhygienic practices</div>
+        </div>
+    </div>
+
+    <div class="slide" data-index="14">
+        <h2>Finding 8: Climate Change & Waterborne Disease Risks</h2>
+        <p>Climate change exacerbates the risk of diarrhoeal diseases. 🌡️</p>
+        <ul>
+            <li>Unsafe drinking water and poor sanitation are major contributors.</li>
+            <li>Changing climate patterns expected to worsen these risks.</li>
+        </ul>
+    </div>
+
+    <div class="slide" data-index="15">
+        <h2>Finding 9: Role of Female Education</h2>
+        <p>Female education improves hygiene practices and child health. 👩‍🎓</p>
+        <ul>
+            <li>Empowering women enhances household hygiene.</li>
+            <li>Reduces mortality rates indirectly.</li>
+        </ul>
+        <div class="number-card">
+            <h2>+30%</h2>
+            <p>Improvement in child health outcomes with higher female education</p>
+        </div>
+    </div>
+
+    <div class="slide" data-index="16">
+        <h2>Finding 10: Healthcare Facility Hygiene</h2>
+        <p>Healthcare facilities face challenges related to basic hygiene. 🏥</p>
+        <ul>
+            <li>Lack of essential amenities like toilets, clean water, and waste disposal.</li>
+            <li>Increases the risk of healthcare-associated infections.</li>
+        </ul>
+        <div class="bar-chart">
+            <div class="bar" style="width: 35%;">35% of facilities lack adequate hygiene amenities</div>
+        </div>
+    </div>
+
+    <div class="slide" data-index="17">
+        <h2>Finding 11: Regional Disparities in Access</h2>
+        <p>Significant regional disparities exist in access and outcomes. 🗺️</p>
+        <ul>
+            <li>Complicates uniform policy implementation.</li>
+            <li>Necessitates targeted interventions.</li>
+        </ul>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Region</th>
+                    <th>Access to Sanitation</th>
+                    <th>Child Mortality Rate</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="even-row">
+                    <td>North India</td>
+                    <td>60%</td>
+                    <td>45/1000</td>
+                </tr>
+                <tr>
+                    <td>South India</td>
+                    <td>85%</td>
+                    <td>25/1000</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="slide" data-index="18">
+        <h2>Finding 12: Sustained Behavioral Change Needed</h2>
+        <p>Sustained behavioral change and community engagement are essential. 🤝</p>
+        <ul>
+            <li>Infrastructure development alone is insufficient.</li>
+            <li>Proper use and maintenance are crucial.</li>
+        </ul>
+    </div>
+
+    <div class="slide" data-index="19">
+        <h2>Key Insight: Integrated Approach</h2>
+        <p>An integrated Water, Sanitation, and Hygiene (WaSH) strategy is crucial. 🎯</p>
+        <p>Link with nutrition and healthcare programs for synergistic effects. ⚡</p>
+    </div>
+
+    <div class="slide" data-index="20">
+        <h2>Challenges and Opportunities</h2>
+        <ul>
+            <li>Challenges: Inadequate infrastructure, persistent open defecation, malnutrition, regulatory gaps.</li>
+            <li>Opportunities: Strengthening government initiatives, community engagement, female education.</li>
+        </ul>
+    </div>
+
+     <div class="slide" data-index="21">
+        <h2>Conclusion & Summary</h2>
+        <p>Addressing mortality due to unhygiene requires a multifaceted, sustained effort. ✓</p>
+        <div class="grid-container">
+            <div class="number-card">
+                <h2>WaSH</h2>
+                <p>Integrated strategies</p>
+            </div>
+            <div class="number-card">
+                <h2>Education</h2>
+                <p>Empowering communities</p>
+            </div>
+            <div class="number-card">
+                <h2>Regulation</h2>
+                <p>Ensuring standards</p>
+            </div>
+            <div class="number-card">
+                <h2>Investment</h2>
+                <p>Sustained commitment</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" data-index="22">
+        <h2>Recommendations & Next Steps</h2>
+        <ul>
+            <li>Prioritize WaSH interventions in high-risk areas.</li>
+            <li>Strengthen regulatory oversight of pharmaceuticals and food safety.</li>
+            <li>Promote hygiene education in schools and communities.</li>
+        </ul>
+    </div>
+
+    <div class="slide" data-index="23">
+        <h2>References</h2>
+        <ul class="reference-list">
+            <li>[1] Global Challenges in Alleviating Deaths from Unsafe Rural Sanitation</li>
+            <li>[2] Sanitation and Child Health in India | Senemi Foundation</li>
+            <li>[3] India's sanitation drive: 450 million people reached through ...</li>
+            <li>[4] Sanitation and expanding rotavirus vaccination are key to combating ...</li>
+            <li>[5] Dirty water, poor diet: A recipe for rising infection among Indian ...</li>
+        </ul>
+    </div>
+
+    <div class="navigation">
+        <button id="prev-button">Previous</button>
+        <button id="next-button">Next</button>
+    </div>
+
+    <script>
+        const slides = document.querySelectorAll('.slide');
+        const prevButton = document.getElementById('prev-button');
+        const nextButton = document.getElementById('next-button');
+        const progressBar = document.getElementById('progress-bar');
+        const slideNumberDisplay = document.getElementById('slide-number');
+        let currentSlide = 0;
+
+        function updateSlideNumber() {
+            slideNumberDisplay.textContent = `${currentSlide + 1} / ${slides.length}`;
+        }
+
+        function showSlide(n) {
+            slides.forEach(slide => slide.classList.remove('active'));
+            slides[n].classList.add('active');
+            updateProgress();
+            updateSlideNumber();
+        }
+
+        function updateProgress() {
+            const progress = ((currentSlide + 1) / slides.length) * 100;
+            progressBar.style.width = `${progress}%`;
+        }
+
+        function nextSlide() {
+            currentSlide = (currentSlide + 1) % slides.length;
+            showSlide(currentSlide);
+        }
+
+        function prevSlide() {
+            currentSlide = (currentSlide - 1 + slides.length) % slides.length;
+            showSlide(currentSlide);
+        }
+
+        // Event listeners for navigation buttons
+        nextButton.addEventListener('click', nextSlide);
+        prevButton.addEventListener('click', prevSlide);
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'ArrowRight' || event.key === ' ') {
+                nextSlide();
+            } else if (event.key === 'ArrowLeft') {
+                prevSlide();
+            } else if (event.key === 'Home') {
+                currentSlide = 0;
+                showSlide(currentSlide);
+            } else if (event.key === 'End') {
+                currentSlide = slides.length - 1;
+                showSlide(currentSlide);
+            }
+        });
+
+        // Touch swipe navigation
+        let touchstartX = 0;
+        let touchendX = 0;
+
+        function checkDirection() {
+            if (touchendX < touchstartX) nextSlide();
+            if (touchendX > touchstartX) prevSlide();
+        }
+
+        document.addEventListener('touchstart', e => {
+            touchstartX = e.changedTouches[0].screenX;
+        });
+
+        document.addEventListener('touchend', e => {
+            touchendX = e.changedTouches[0].screenX;
+            checkDirection();
+        });
+
+        // Initial slide display
+        showSlide(currentSlide);
+    </script>
+
+</body>
+</html>

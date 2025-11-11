@@ -31,9 +31,10 @@ class Particle {
   draw() {
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(0, 150, 255, 0.9)`;
+    // Use red color for particles during research
+    ctx.fillStyle = `rgba(${neuralNetworkColor.r}, ${neuralNetworkColor.g}, ${neuralNetworkColor.b}, 0.9)`;
     ctx.shadowBlur = 15;
-    ctx.shadowColor = 'rgba(0, 150, 255, 0.8)';
+    ctx.shadowColor = `rgba(${neuralNetworkColor.r}, ${neuralNetworkColor.g}, ${neuralNetworkColor.b}, 0.8)`;
     ctx.fill();
     ctx.shadowBlur = 0;
   }
@@ -45,6 +46,14 @@ const particleCount = 120;
 for (let i = 0; i < particleCount; i++) {
   particles.push(new Particle());
 }
+
+// Neural network color state - Start with RED for research page
+let neuralNetworkColor = {
+  r: 255,
+  g: 20,
+  b: 60,
+  isResearching: true
+};
 
 // Animation loop
 function animate() {
@@ -67,10 +76,11 @@ function animate() {
         ctx.moveTo(particles[i].x, particles[i].y);
         ctx.lineTo(particles[j].x, particles[j].y);
         const opacity = (1 - distance / 180) * 0.6;
-        ctx.strokeStyle = `rgba(0, 200, 255, ${opacity})`;
+        // Use red color for connections during research
+        ctx.strokeStyle = `rgba(${neuralNetworkColor.r}, ${neuralNetworkColor.g}, ${neuralNetworkColor.b}, ${opacity})`;
         ctx.lineWidth = 1;
         ctx.shadowBlur = 5;
-        ctx.shadowColor = `rgba(0, 200, 255, ${opacity * 0.5})`;
+        ctx.shadowColor = `rgba(${neuralNetworkColor.r}, ${neuralNetworkColor.g}, ${neuralNetworkColor.b}, ${opacity * 0.5})`;
         ctx.stroke();
         ctx.shadowBlur = 0;
       }
@@ -282,6 +292,9 @@ function onResearchComplete(data) {
   
   resultsSection.style.display = 'block';
   resultsSection.scrollIntoView({ behavior: 'smooth' });
+  
+  // Keep neural network red even after research completes
+  neuralNetworkColor.isResearching = true;
 }
 
 function onResearchError(data) {

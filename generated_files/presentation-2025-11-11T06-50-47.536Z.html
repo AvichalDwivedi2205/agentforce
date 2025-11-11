@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mortality Rate Due to Unhygiene in India</title>
+    <style>
+        /* General Styles */
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background-color: #000000;
+            color: #FFFFFF;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .slide {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: #000000;
+            padding: 3rem;
+            transition: transform 0.4s ease-in-out;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(0);
+        }
+
+        .content-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        h1, h2, h3 {
+            color: #FFFFFF;
+            text-align: center;
+            margin-bottom: 2rem;
+            text-shadow: 0 0 20px rgba(0, 217, 255, 0.5);
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+        }
+
+        h2 {
+            font-size: 2.5rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        h3 {
+            font-size: 1.8rem;
+            font-weight: 500;
+        }
+
+        p, li {
+            color: #E0E0E0;
+            font-size: 1.1rem;
+            line-height: 1.8;
+            text-align: left;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            margin-bottom: 1rem;
+        }
+
+        /* Layout Styles */
+        .two-column {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .column {
+            flex: 1;
+        }
+
+        .three-column {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+        }
+
+        /* Card Styles */
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 0 30px rgba(0, 217, 255, 0.3);
+            border: 2px solid #00D9FF;
+            box-shadow: 0 0 20px rgba(0, 217, 255, 0.4);
+        }
+
+        /* Data Visualization Styles */
+        .bar-chart {
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+
+        .bar {
+            background: linear-gradient(90deg, #00D9FF, #9D4EDD);
+            border-radius: 8px;
+            height: 24px;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 0 10px rgba(0, 217, 255, 0.5);
+        }
+
+        .pie-chart {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            margin: 1rem auto;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0, 217, 255, 0.5);
+        }
+
+        .pie-chart::before {
+            content: attr(data-text);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #FFFFFF;
+            z-index: 1;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00D9FF, #9D4EDD);
+            border-radius: 6px;
+            box-shadow: 0 0 10px rgba(0, 217, 255, 0.5);
+        }
+
+        .number-card {
+            text-align: center;
+        }
+
+        .number {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #00D9FF;
+            text-shadow: 0 0 20px rgba(0, 217, 255, 0.5);
+        }
+
+        /* Timeline Styles */
+        .timeline {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 2rem;
+        }
+
+        .timeline-item {
+            text-align: center;
+        }
+
+        .timeline-circle {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: #00D9FF;
+            margin: 0 auto 0.5rem;
+            box-shadow: 0 0 10px rgba(0, 217, 255, 0.5);
+        }
+
+        /* Icon Styles */
+        .icon {
+            font-size: 1.5rem;
+            color: #00D9FF;
+            margin-right: 0.5rem;
+            text-shadow: 0 0 10px rgba(0, 217, 255, 0.5);
+        }
+
+        /* Button Styles */
+        .nav-buttons {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 1rem;
+        }
+
+        .nav-button {
+            background-color: rgba(0, 217, 255, 0.1);
+            color: #FFFFFF;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease-in-out;
+        }
+
+        .nav-button:hover {
+            background-color: rgba(0, 217, 255, 0.3);
+        }
+
+        /* Slide Number Indicator */
+        .slide-number {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            color: #E0E0E0;
+            font-size: 1rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            h2 {
+                font-size: 1.8rem;
+            }
+
+            .two-column, .three-column {
+                flex-direction: column;
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Additional Styles */
+        .highlight {
+            color: #00D9FF;
+            font-weight: bold;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+        }
+
+        .data-table th, .data-table td {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 0.75rem;
+            text-align: left;
+        }
+
+        .data-table th {
+            background-color: rgba(0, 217, 255, 0.1);
+            color: #00D9FF;
+        }
+
+        /* Animated Underline */
+        .animated-underline {
+            position: relative;
+            display: inline-block;
+            padding-bottom: 5px;
+        }
+
+        .animated-underline::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 0;
+            height: 2px;
+            background-color: #00D9FF;
+            transition: width 0.4s ease-in-out;
+        }
+
+        .animated-underline:hover::after {
+            width: 100%;
+        }
+       
+        /* Progress Bar */
+        #progress-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background-color: #333;
+            z-index: 1000;
+        }
+
+        #progress-bar {
+            height: 100%;
+            width: 0;
+            background: linear-gradient(to right, #00D9FF, #9D4EDD);
+            transition: width 0.1s ease-out;
+        }
+        
+        .slide-link {
+            color: #00D9FF;
+            text-decoration: none;
+            margin: 0 0.5rem;
+        }
+
+        .slide-link:hover {
+            text-decoration: underline;
+        }
+        
+        .reference-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .reference-item {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="progress-container">
+    <div id="progress-bar"></div>
+</div>
+
+<div class="slide active" id="slide1">
+    <div class="content-wrapper">
+        <h1>Mortality Rate Due to Unhygiene in India</h1>
+        <h2>A Comprehensive Research Report</h2>
+        <p>Date: 11/11/2025</p>
+        <p>Topic Category: Public Health, Sanitation, Hygiene</p>
+    </div>
+</div>
+
+<div class="slide" id="slide2">
+    <div class="content-wrapper">
+        <h2><span class="animated-underline">Table of Contents</span></h2>
+        <ul>
+            <li><span class="icon">📊</span> <a href="#slide4" class="slide-link">Introduction & Context</a></li>
+            <li><span class="icon">💡</span> <a href="#slide7" class="slide-link">Finding 1: Pervasive Unhygienic Conditions</a></li>
+            <li><span class="icon">💡</span> <a href="#slide8" class="slide-link">Finding 2: NCDs and Lifestyle</a></li>
+            <li><span class="icon">💡</span> <a href="#slide9" class="slide-link">Finding 3: Vulnerable Children</a></li>
+            <li><span class="icon">💡</span> <a href="#slide10" class="slide-link">Finding 4: Progress in Sanitation</a></li>
+            <li><span class="icon">💡</span> <a href="#slide11" class="slide-link">Finding 5: Environmental Degradation</a></li>
+            <li><span class="icon">💡</span> <a href="#slide12" class="slide-link">Finding 6: Unmet NCD Targets</a></li>
+        </ul>
+    </div>
+</div>
+
+<div class="slide" id="slide3">
+    <div class="content-wrapper">
+        <h2><span class="animated-underline">Table of Contents (Continued)</span></h2>
+        <ul>
+            <li><span class="icon">💡</span> <a href="#slide13" class="slide-link">Finding 7: Food Safety Concerns</a></li>
+            <li><span class="icon">💡</span> <a href="#slide14" class="slide-link">Finding 8: Maternal Health</a></li>
+            <li><span class="icon">💡</span> <a href="#slide15" class="slide-link">Finding 9: Sanitation and Child Health</a></li>
+            <li><span class="icon">💡</span> <a href="#slide16" class="slide-link">Key Findings</a></li>
+            <li><span class="icon">💡</span> <a href="#slide19" class="slide-link">Insights & Analysis</a></li>
+            <li><span class="icon">💡</span> <a href="#slide21" class="slide-link">Conclusion & Summary</a></li>
+            <li><span class="icon">💡</span> <a href="#slide22" class="slide-link">Recommendations</a></li>
+            <li><span class="icon">💡</span> <a href="#slide23" class="slide-link">References</a></li>
+        </ul>
+    </div>
+</div>
+
+<div class="slide" id="slide4">
+    <div class="content-wrapper">
+        <h2><span class="animated-underline">Introduction & Context</span></h2>
+        <p>India faces a public health crisis due to unhygienic conditions, inadequate sanitation, and compromised water quality. ⚡</p>
+        <p>Initiatives like Swachh Bharat Mission (SBM) and Jal Jeevan Mission (JJM) have improved sanitation and water access. ✓</p>
+        <p>Key Statistics:</p>
+        <div class="two-column">
+            <div class="column">
+                <div class="number-card">
+                    <div class="number">175,000</div>
+                    <p>Deaths from food-borne diseases in South-East Asia (2010)</p>
+                </div>
+            </div>
+            <div class="column">
+                <div class="progress-bar">
+                    <div class="progress-bar-fill" style="width: 40%;"></div>
+                </div>
+                <p>40% of food-borne deaths affect children under five.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="slide" id="slide5">
+    <div class="content-wrapper">
+        <h2><span class="animated-underline">The Silent Epidemic of NCDs</span></h2>
+        <p>The Health of the Nation 2025 report highlights a "silent epidemic" of non-communicable lifestyle diseases. 💡</p>
+        <ul>
+            <li><span class="icon">▶</span> Fatty liver: 65% screened</li>
+            <li><span class="icon">▶</span> Vitamin D deficiency: 77% women, 82% men</li>
+            <li><span class="icon">▶</span> Obstructive sleep apnea: 24% high risk</li>
+        </ul>
+    </div>
+</div>
+
+<div class="slide" id="slide6">
+    <div class="content-wrapper">
+        <h2><span class="animated-underline">Unhygienic India</span></h2>
+        <p>India ranks fourth among the world's dirtiest countries. 📊</p>
+        <div class="two-column">
+            <div class="column">
+                <div class="number-card">
+                    <div class="number">70.7</div>
+                    <p>Dirty Score</p>
+                </div>
+            </div>
+            <div class="column">
+                <p>Includes air quality, water, waste, and general hygiene practices.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="slide" id="slide7">
+    <div class="content-wrapper">
+        <h2><span class="animated-underline">Finding 1: Pervasive Unhygienic Conditions</span></h2>
+        <p>India faces a critical public health crisis due to unhygienic conditions. ⚡</p>
+        <ul>
+            <li><span class="icon">▶</span> Waterborne diseases are a major contributor to mortality.</li>
+            <li><span class="icon">▶</span> Foodborne illnesses affect a large population, especially children.</li>
+            <li><span class="icon">▶</span> NCDs are exacerbated by poor hygiene and dietary habits.</li>
+        </ul>
+        <div class="bar-chart">
+            <div class="bar" style="width: 40%;">40% of food-borne deaths affect children under five</div>
+        </div>
+    </div>
+</div>
+
+<div class="slide" id="slide8">
+    <div class="content-wrapper">
+        <h2><span class="animated-underline">Finding 2: NCDs and Lifestyle</span></h2>
+        <p>A "silent epidemic" of non-communicable lifestyle diseases is sweeping across India. 💡</p>
+        <ul>
+            <li><span class="icon">▶</span> 65% of those screened had fatty liver.</li>
+            <li><span class="icon">▶</span> 77% of women and 82% of men have vitamin D deficiency.</li>
+            <li><span class="icon">▶</span> 24% are at high risk of obstructive sleep apnea.</li>
+        </ul>
+    </div>
+</div>
+
+<div class="slide" id="slide9">
+    <div class="content-wrapper">
+        <h2><span class="animated-underline">Finding 3: Vulnerable Children</span></h2>
+        <p>Children under five are disproportionately affected by unhygienic conditions. 👶</p>
+        <ul>
+            <li><span class="icon">▶</span> Unsafe water, sanitation, and hygiene cause approximately 1,000 deaths of children under five daily.</li>
+            <li><span class="icon">▶</span> Diarrhea is a leading cause of death.</li>
+            <li><span class="icon">▶</span> Malnutrition is significantly driven by inadequate WASH practices.</li>
+        </ul>
+        <div class="number-card">
+            <div class="number">1,000</div>
+            <p>Child deaths daily due to unsafe WASH</p>
+        </div>
+    </div>
+</div>
+
+<div class="slide" id="slide10">
+    <div class="content-wrapper">
+        <h2><span class="animated-underline">Finding 4: Progress in Sanitation</span></h2>
+        <p>Government initiatives like SBM and JJM have led to improvements. ✓</p>
+        <ul>
+            <li><span class="icon">▶</span> SBM: 120 million toilets constructed.</li>
+            <li><span class="icon">▶</span> JJM: Tap water connections increased from 17% (2019) to 79.66%.</li>
+        </ul>
+        <div class="two-column">
+            <div class="column">
+                <div class="progress-bar">
+                    <div class="progress-bar-fill" style="width: 79.66%;"></div>
+                </div>
+                <p>Tap water connections: 79.66%</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="slide" id="slide11">
+    <div class="content-wrapper">
+        <h2><span class="animated-underline">Finding 5: Environmental Degradation</span></h2>
+        <p>Air pollution significantly impacts lifespan. 💨</p>
+        <ul>
+            <li><span class="icon">▶</span> Individuals in the Indo-Gangetic Plain are projected to live seven years less due to air pollution.</li>
+        </ul>
+        <div class="number-card">
+            <div class="number">7 Years</div>
+            <p>Life expectancy reduction in Indo-Gangetic Plain</p>
+        </div>
+    </div>
+</div>
+
+<div class="slide" id="slide12">
+    <div class="content-wrapper">
+        <h2><span class="animated-underline">Finding 6: Unmet NCD Targets</span></h2>
+        <p>NCD mortality reduction targets remain unmet. 🎯</p>
+        <ul>
+            <li><span class="icon">▶</span> The rate of decrease is insufficient to meet the government's "25 × 25" target.</li>
+            <li><span class="icon">▶</span> Mortality in males due to NCDs was higher than in females.</li>
+        </ul>
+    </div>
+</div>
+
+<div class="slide" id="slide13">
+    <div class="content-wrapper">
+        <h2><span class="animated-underline">Finding 7: Food Safety Concerns</span></h2>
+        <p>Food safety is a critical public health concern. 🍔</p>
+        <ul>
+            <li><span class="icon">▶</span> Street food often poses a health hazard due to contamination.</li>
+            <li><span class="icon">▶</span> Comprehensive food safety measures are urgently needed.</li>
+        </ul>
+    </div>
+</div>
+
+<div class="slide" id="slide14">
+    <div class="content-wrapper">
+        <h2><span class="animated-underline">Finding 8: Maternal Health</span></h2>
+        <p>Unhygienic childbirth practices affect maternal health. 🤰</p>
+        <ul>
+            <li><span class="icon">▶</span> Unhygienic practices contribute to elevated maternal mortality rates.</li>
+            <li><span class="icon">▶</span> Poverty and limited access to healthcare exacerbate these challenges.</li>
+        </ul>
+    </div>
+</div>
+
+<div class="slide" id="slide15">
+    <div class="content-wrapper">
+        <h2><span class="animated-underline">Finding 9: Sanitation and Child Health</span></h2>
+        <p>Sanitation access positively correlates with improved child health. 👶</p>
+        <ul>
+            <li><span class="icon">▶</span> Toilet facilities reduce stunting and underweight children.</li>
+            <li><span class="icon">▶</span> Open defecation is linked to increased malnutrition.</li>
+        </ul>
+    </div>
+</div>
+
+<div class="slide" id="slide16">
+    <div class="content-wrapper">
+        <h2><span class="animated-underline">Key Findings</span></h2>
+        <p>India faces significant mortality due to unhygiene. ⚡</p>
+        <div class="two-column">
+            <div class="column">
+                <div class="card">
+                    <h3>Children Under 5</h3>
+                    <p>Disproportionately affected by waterborne diseases and malnutrition.</p>
+                </div>
+            </div>
+            <div class="column">
+                <div class="card">
+                    <h3>Non-Communicable Diseases</h3>
+                    <p>Rising due to poor diets and environmental factors.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="slide" id="slide17">
+    <div class="content-wrapper">
+        <h2><span class="animated-underline">Key Findings: Progress & Gaps</span></h2>
+        <div class="two-column">
+            <div class="column">
+                <div class="card">
+                    <h3>Progress</h3>
+                    <p>Swachh Bharat Mission and Jal Jeevan Mission have improved sanitation and water access.</p>
+                </div>
+            </div>
+            <div class="column">
+                <div class="card">
+                    <h3>Gaps</h3>
+                    <p>Targets for NCD mortality reduction remain unmet.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="slide" id="slide18">
+    <div class="content-wrapper">
+        <h2><span class="animated-underline">Key Findings: Data Visualization</span></h2>
+        <div class="pie-chart" style="background: conic-gradient(#00D9FF 25%, #9D4EDD 25% 50%, #39FF14 50% 75%, #FF006E 75%);" data-text="Mortality Factors"></div>
+        <p>Pie chart illustrating the distribution of mortality factors.</p>
+    </div>
+</div>
+
+<div class="slide" id="slide19">
+    <div class="content-wrapper">
+        <h2><span class="animated-underline">Insights & Analysis</span></h2>
+        <p>The multifaceted burden of unhygiene on Indian mortality. 💡</p>
+        <ul>
+            <li><span class="icon">▶</span> Inadequate infrastructure, socio-economic disparities, and behavioral factors contribute to the problem.</li>
+            <li><span class="icon">▶</span> Infectious diseases, particularly among children, are a major concern.</li>
+            <li><span class="icon">▶</span> NCDs are linked to dietary habits and environmental exposures.</li>
+        </ul>
+    </div>
+</div>
+
+<div class="slide" id="slide20">
+    <div class="content-wrapper">
+        <h2><span class="animated-underline">Insights & Analysis: Government Initiatives</span></h2>
+        <p>Government initiatives, progress, and persistent gaps. ✓</p>
+        <ul>
+            <li><span class="icon">▶</span> SBM and JJM have improved sanitation and water access.</li>
+            <li><span class="icon">▶</span> However, substantial gaps persist in ensuring consistent use of facilities and addressing behavioral change.</li>
+        </ul>
+    </div>
+</div>
+
+<div class="slide" id="slide21">
+    <div class="content-wrapper">
+        <h2><span class="animated-underline">Conclusion & Summary</span></h2>
+        <p>Addressing unhygiene is critical for improving public health in India. 🎯</p>
+        <ul>
+            <li><span class="icon">▶</span> Government initiatives show promise but need sustained effort.</li>
+            <li><span class="icon">▶</span> Focus on equitable access to WASH services.</li>
+            <li><span class="icon">▶</span> Address socio-economic factors and cultural norms.</li>
+        </ul>
+    </div>
+</div>
+
+<div class="slide" id="slide22">
+    <div class="content-wrapper">
+        <h2><span class="animated-underline">Recommendations / Next Steps</span></h2>
+        <ul>
+            <li><span class="icon">✓</span> Strengthen public health infrastructure.</li>
+            <li><span class="icon">✓</span> Promote healthy lifestyles and dietary habits.</li>
+            <li><span class="icon">✓</span> Ensure access to safe water and sanitation for all.</li>
+            <li><span class="icon">✓</span> Improve regulatory oversight of food and drug safety.</li>
+            <li><span class="icon">✓</span> Leverage data mining and informatics for public health surveillance.</li>
+        </ul>
+    </div>
+</div>
+
+<div class="slide" id="slide23">
+    <div class="content-wrapper">
+        <h2><span class="animated-underline">References</span></h2>
+        <ul class="reference-list">
+            <li class="reference-item">
+                <strong>[1] Global Challenges in Alleviating Deaths from Unsafe Rural Sanitation</strong>
+                <br>
+                📄 Research source with relevant insights
+                <br>
+                🔗 <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC12186206/" target="_blank">https://pmc.ncbi.nlm.nih.gov/articles/PMC12186206/</a>
+            </li>
+            <li class="reference-item">
+                <strong>[2] Sanitation and Child Health in India | Senemi Foundation</strong>
+                <br>
+                📄 Research source with relevant insights
+                <br>
+                🔗 <a href="https://senemifoundation.org/blog/impact-of-sanitation-on-child-health/" target="_blank">https://senemifoundation.org/blog/impact-of-sanitation-on-child-health/</a>
+            </li>
+            <li class="reference-item">
+                <strong>[3] India's sanitation drive: 450 million people reached through ...</strong>
+                <br>
+                📄 Research source with relevant insights
+                <br>
+                🔗 <a href="https://www.waterdiplomat.org/story/2025/10/indias-sanitation-drive-450-million-people-reached-through-awareness-raising-and" target="_blank">https://www.waterdiplomat.org/story/2025/10/indias-sanitation-drive-450-million-people-reached-through-awareness-raising-and</a>
+            </li>
+            <li class="reference-item">
+                <strong>[4] Dirty water, poor diet: A recipe for rising infection among Indian ...</strong>
+                <br>
+                📄 Research source with relevant insights
+                <br>
+                🔗 <a href="https://www.indiatoday.in/health/story/dirty-water-poor-diet-a-recipe-for-rising-infection-among-indian-children-2660271-2025-01-06" target="_blank">https://www.indiatoday.in/health/story/dirty-water-poor-diet-a-recipe-for-rising-infection-among-indian-children-2660271-2025-01-06</a>
+            </li>
+            <li class="reference-item">
+                <strong>[5] Slow murder continues: Black Deposits that cannot be removed</strong>
+                <br>
+                📄 Research source with relevant insights
+                <br>
+                🔗 <a href="https://www.downtoearth.org.in/air/slow-murder-continues-black-deposits-that-cannot-be-removed" target="_blank">https://www.downtoearth.org.in/air/slow-murder-continues-black-deposits-that-cannot-be-removed</a>
+            </li>
+            <li class="reference-item">
+                <strong>[6] The Well‐Being of Slum Dwellers Are Associated With WaSH ... - NIH</strong>
+                <br>
+                📄 Research source with relevant insights
+                <br>
+                🔗 <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC12241681/" target="_blank">https://pmc.ncbi.nlm.nih.gov/articles/PMC12241681/</a>
+            </li>
+        </ul>
+    </div>
+</div>
+
+<div class="nav-buttons">
+    <button class="nav-button" id="prev">Previous</button>
+    <button class="nav-button" id="next">Next</button>
+</div>
+
+<div class="slide-number">
+    <span id="current-slide">1</span> / <span id="total-slides">23</span>
+</div>
+
+<script>
+    const slides = document.querySelectorAll('.slide');
+    const prevButton = document.getElementById('prev');
+    const nextButton = document.getElementById('next');
+    const currentSlideDisplay = document.getElementById('current-slide');
+    const totalSlidesDisplay = document.getElementById('total-slides');
+    const progressBar = document.getElementById('progress-bar');
+
+    let currentSlide = 0;
+
+    function showSlide(n) {
+        slides.forEach(slide => slide.classList.remove('active'));
+        slides[n].classList.add('active');
+        currentSlideDisplay.innerText = n + 1;
+    }
+
+    function updateProgressBar(n) {
+        const progress = ((n + 1) / slides.length) * 100;
+        progressBar.style.width = `${progress}%`;
+    }
+
+    function navigate(direction) {
+        currentSlide += direction;
+
+        if (currentSlide < 0) {
+            currentSlide = 0;
+        } else if (currentSlide >= slides.length) {
+            currentSlide = slides.length - 1;
+        }
+
+        showSlide(currentSlide);
+        updateProgressBar(currentSlide);
+    }
+
+    prevButton.addEventListener('click', () => navigate(-1));
+    nextButton.addEventListener('click', () => navigate(1));
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'ArrowLeft') {
+            navigate(-1);
+        } else if (event.key === 'ArrowRight' || event.key === ' ') {
+            navigate(1);
+        } else if (event.key === 'Home') {
+            currentSlide = 0;
+            showSlide(currentSlide);
+            updateProgressBar(currentSlide);
+        } else if (event.key === 'End') {
+            currentSlide = slides.length - 1;
+            showSlide(currentSlide);
+            updateProgressBar(currentSlide);
+        }
+    });
+
+    // Touch swipe support
+    let touchstartX = 0;
+    let touchendX = 0;
+
+    document.addEventListener('touchstart', (event) => {
+        touchstartX = event.changedTouches[0].screenX;
+    });
+
+    document.addEventListener('touchend', (event) => {
+        touchendX = event.changedTouches[0].screenX;
+        handleSwipe();
+    });
+
+    function handleSwipe() {
+        const swipeDistance = touchendX - touchstartX;
+        const swipeThreshold = 50;
+
+        if (swipeDistance > swipeThreshold) {
+            navigate(-1); // Swipe right
+        } else if (swipeDistance < -swipeThreshold) {
+            navigate(1); // Swipe left
+        }
+    }
+
+    totalSlidesDisplay.innerText = slides.length;
+    updateProgressBar(currentSlide);
+</script>
+
+</body>
+</html>

@@ -31,10 +31,10 @@ class Particle {
   draw() {
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-    // Much brighter, vibrant particles with glow
-    ctx.fillStyle = `rgba(0, 150, 255, 0.9)`;
+    // Use dynamic color based on state
+    ctx.fillStyle = `rgba(${neuralNetworkColor.r}, ${neuralNetworkColor.g}, ${neuralNetworkColor.b}, 0.9)`;
     ctx.shadowBlur = 15;
-    ctx.shadowColor = 'rgba(0, 150, 255, 0.8)';
+    ctx.shadowColor = `rgba(${neuralNetworkColor.r}, ${neuralNetworkColor.g}, ${neuralNetworkColor.b}, 0.8)`;
     ctx.fill();
     ctx.shadowBlur = 0;
   }
@@ -46,6 +46,14 @@ const particleCount = 120;
 for (let i = 0; i < particleCount; i++) {
   particles.push(new Particle());
 }
+
+// Neural network color state
+let neuralNetworkColor = {
+  r: 0,
+  g: 150,
+  b: 255,
+  isRed: false
+};
 
 // Animation loop
 function animate() {
@@ -70,11 +78,14 @@ function animate() {
         ctx.moveTo(particles[i].x, particles[i].y);
         ctx.lineTo(particles[j].x, particles[j].y);
         const opacity = (1 - distance / 180) * 0.6;
-        // Vibrant electric blue connections
-        ctx.strokeStyle = `rgba(0, 200, 255, ${opacity})`;
+        // Use dynamic color for connections
+        const connectionR = neuralNetworkColor.isRed ? 255 : Math.min(neuralNetworkColor.r + 50, 255);
+        const connectionG = neuralNetworkColor.isRed ? 0 : Math.min(neuralNetworkColor.g + 50, 255);
+        const connectionB = neuralNetworkColor.isRed ? 50 : 255;
+        ctx.strokeStyle = `rgba(${connectionR}, ${connectionG}, ${connectionB}, ${opacity})`;
         ctx.lineWidth = 1;
         ctx.shadowBlur = 5;
-        ctx.shadowColor = `rgba(0, 200, 255, ${opacity * 0.5})`;
+        ctx.shadowColor = `rgba(${connectionR}, ${connectionG}, ${connectionB}, ${opacity * 0.5})`;
         ctx.stroke();
         ctx.shadowBlur = 0;
       }
@@ -120,9 +131,39 @@ function connectWebSocket() {
 
 connectWebSocket();
 
+// Function to transition neural network to red
+function transitionToRed() {
+  neuralNetworkColor.isRed = true;
+  const startColor = { r: 0, g: 150, b: 255 };
+  const endColor = { r: 255, g: 20, b: 60 }; // Vibrant red
+  const duration = 800; // milliseconds
+  const startTime = Date.now();
+
+  function updateColor() {
+    const elapsed = Date.now() - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    
+    // Smooth easing function
+    const eased = progress < 0.5
+      ? 2 * progress * progress
+      : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+
+    neuralNetworkColor.r = Math.round(startColor.r + (endColor.r - startColor.r) * eased);
+    neuralNetworkColor.g = Math.round(startColor.g + (endColor.g - startColor.g) * eased);
+    neuralNetworkColor.b = Math.round(startColor.b + (endColor.b - startColor.b) * eased);
+
+    if (progress < 1) {
+      requestAnimationFrame(updateColor);
+    }
+  }
+
+  updateColor();
+}
+
 // Handle Enter key in search input
 queryInput.addEventListener('keypress', (e) => {
   if (e.key === 'Enter') {
+    transitionToRed();
     startResearchBtn.click();
   }
 });
@@ -133,6 +174,11 @@ startResearchBtn.addEventListener('click', () => {
   
   if (!query) {
     return;
+  }
+  
+  // Transition to red if not already triggered
+  if (!neuralNetworkColor.isRed) {
+    transitionToRed();
   }
   
   // Add collapsing animation
@@ -147,7 +193,8 @@ startResearchBtn.addEventListener('click', () => {
     // Navigate to research page with query parameters
     const params = new URLSearchParams({
       query: query,
-      deepMode: deepModeToggle.checked
+      deepMode: deepModeToggle.checked,
+      redMode: 'true' // Signal that neural network should be red
     });
     
     window.location.href = `/research.html?${params.toString()}`;
